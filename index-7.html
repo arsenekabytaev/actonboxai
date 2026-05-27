@@ -1,0 +1,3192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>ACTONBOX — Boxing Motion Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #0a0a0a;
+  --bg-2: #141414;
+  --bg-3: #1c1c1c;
+  --line: #2a2a2a;
+  --ink: #f4f1ea;
+  --ink-dim: #8a8680;
+  --ink-faint: #555048;
+  --red: #dc2626;
+  --red-dim: #7a1818;
+  --bone: #f4f1ea;
+  --gold: #fbbf24;
+  --green: #4ade80;
+  --display: "Anton", "Impact", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  overflow: hidden;
+  height: 100vh; height: 100dvh;
+  width: 100vw;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.screen {
+  position: fixed;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.screen.active { display: flex; }
+
+/* ---------- Splash ---------- */
+#splash {
+  background: radial-gradient(ellipse at 50% 30%, #1a0808 0%, #0a0a0a 60%);
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 100;
+  padding: 20px;
+  overflow-y: auto;
+}
+#splash .logo {
+  font-family: var(--display);
+  font-size: clamp(54px, 18vw, 140px);
+  letter-spacing: -0.02em;
+  line-height: 0.85;
+  color: var(--bone);
+  margin: 0;
+  position: relative;
+}
+#splash .logo::after {
+  content: "";
+  position: absolute;
+  right: -14px; top: 6px;
+  width: 12px; height: 12px;
+  background: var(--red);
+  border-radius: 50%;
+}
+#splash .tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--ink-dim);
+  margin-top: 10px;
+  text-transform: uppercase;
+}
+#splash .splash-actions {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  width: 260px;
+}
+#splash .splash-actions button {
+  background: var(--bg);
+  color: var(--bone);
+  border: none;
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  padding: 16px 20px;
+  cursor: pointer;
+  text-transform: uppercase;
+  text-align: center;
+}
+#splash .splash-actions button.primary {
+  background: var(--red);
+}
+#splash .splash-actions button:active { opacity: 0.7; }
+#splash .splash-actions button .sub {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  margin-top: 4px;
+  font-weight: 400;
+}
+#splash .splash-actions button.primary .sub { color: rgba(255,255,255,0.7); }
+#splash .note {
+  max-width: 320px;
+  margin: 24px 16px 0;
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--ink-faint);
+}
+#splash .note b { color: var(--ink-dim); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+#splash .loader {
+  margin-top: 16px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  min-height: 14px;
+}
+#splash .footer-link {
+  margin-top: 18px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+#splash .footer-link:hover { color: var(--ink-dim); }
+
+/* ---------- Top bar ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  flex-shrink: 0;
+}
+.topbar .brand {
+  font-family: var(--display);
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  color: var(--bone);
+  margin-right: auto;
+}
+.topbar .brand .dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  background: var(--red);
+  border-radius: 50%;
+  margin-left: 4px;
+  vertical-align: 2px;
+}
+.topbar .stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.topbar .stat b {
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--bone);
+  font-size: 11px;
+}
+.topbar button {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 5px 10px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+}
+.topbar button:active { background: var(--bg-2); }
+.rec-dot {
+  width: 8px; height: 8px;
+  background: var(--red);
+  border-radius: 50%;
+  display: inline-block;
+  animation: blink 1s infinite;
+}
+@keyframes blink { 50% { opacity: 0.25; } }
+
+/* ---------- Live ---------- */
+#live-screen { background: #000; }
+.video-wrap {
+  flex: 1;
+  position: relative;
+  background: #000;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.video-frame {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 4 / 3;
+  width: 100%;
+}
+.video-frame.mirror { transform: scaleX(-1); }
+#video, #overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+#video { object-fit: fill; background: #000; }
+
+.hud {
+  position: absolute;
+  pointer-events: none;
+  font-family: var(--mono);
+}
+.hud-tl {
+  top: 10px; left: 10px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+.hud-tl .row { margin-top: 4px; }
+.hud-tr {
+  top: 10px; right: 10px;
+  text-align: right;
+}
+.hud-tr .punches {
+  font-family: var(--display);
+  font-size: 58px;
+  line-height: 0.9;
+  color: var(--bone);
+  letter-spacing: -0.03em;
+}
+.quality-row {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--gold);
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.quality-row .qlabel { color: var(--ink-dim); font-size: 10px; }
+.hud-tr .label {
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin-top: -2px;
+}
+.hud-bl {
+  bottom: 12px; left: 12px;
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.hud-bl .row { margin-top: 4px; }
+.hud-bl b { color: var(--bone); font-weight: 700; }
+.hud-br {
+  bottom: 12px; right: 12px;
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: right;
+}
+.hud-br .row { margin-top: 4px; }
+.hud-br b { color: var(--gold); font-weight: 700; }
+.flash {
+  position: absolute;
+  width: 70px; height: 70px;
+  border-radius: 50%;
+  border: 2px solid var(--red);
+  transform: translate(-50%, -50%) scale(0.5);
+  opacity: 0.9;
+  pointer-events: none;
+  animation: flash 0.5s ease-out forwards;
+}
+.flash.left { border-color: var(--red); }
+.flash.right { border-color: var(--gold); }
+@keyframes flash {
+  to { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+.punch-label {
+  position: absolute;
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  color: var(--bone);
+  text-transform: uppercase;
+  transform: translate(-50%, -120%);
+  pointer-events: none;
+  animation: rise 0.6s ease-out forwards;
+  text-shadow: 0 0 6px rgba(0,0,0,0.9);
+  white-space: nowrap;
+}
+.video-frame.mirror .punch-label { transform: translate(-50%, -120%) scaleX(-1); }
+.video-frame.mirror .punch-label { animation: rise-m 0.6s ease-out forwards; }
+@keyframes rise { to { transform: translate(-50%, -200%); opacity: 0; } }
+@keyframes rise-m { to { transform: translate(-50%, -200%) scaleX(-1); opacity: 0; } }
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.controls button {
+  background: var(--bg-2);
+  color: var(--ink);
+  border: none;
+  padding: 12px 2px 10px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+.controls button:active { background: var(--bg-3); }
+.controls button.active { background: var(--bg-3); color: var(--gold); }
+.controls button.active::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--gold);
+}
+.controls button .icon {
+  font-family: var(--display);
+  font-size: 16px;
+  letter-spacing: 0;
+  color: var(--bone);
+  line-height: 1;
+}
+.controls button.rec .icon { color: var(--red); }
+.controls button.rec.active .icon { color: var(--red); }
+.controls button.rec.active {
+  background: #1a0606;
+  color: var(--red);
+}
+.controls button.rec.active::before { background: var(--red); }
+.controls button:disabled { opacity: 0.35; cursor: default; }
+
+.banner {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+  text-transform: uppercase;
+  background: rgba(0,0,0,0.6);
+  padding: 16px 28px;
+  border: 1px solid var(--gold);
+  pointer-events: none;
+  text-align: center;
+}
+.banner small {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--bone);
+  margin-top: 6px;
+  font-weight: 400;
+}
+
+#zoneHint {
+  position: absolute;
+  top: 14px; left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  text-transform: uppercase;
+  background: rgba(0,0,0,0.75);
+  padding: 10px 16px;
+  border: 1px solid var(--gold);
+  pointer-events: none;
+  text-align: center;
+  display: none;
+  z-index: 5;
+}
+#zoneHint small {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--bone);
+  margin-top: 4px;
+}
+
+/* ---------- Summary ---------- */
+#summary-screen { background: var(--bg); }
+.summary-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+.title-block {
+  border-left: 3px solid var(--red);
+  padding-left: 12px;
+  margin-bottom: 20px;
+}
+.title-block .kicker {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+.title-block h1 {
+  font-family: var(--display);
+  font-size: 36px;
+  margin: 4px 0 0;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: var(--bone);
+}
+.title-block .meta {
+  margin-top: 6px;
+  font-size: 9px;
+  color: var(--ink-faint);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  margin-bottom: 16px;
+}
+.stat-cell {
+  background: var(--bg-2);
+  padding: 14px 12px;
+  text-align: left;
+}
+.stat-cell .label {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.stat-cell .val {
+  font-family: var(--display);
+  font-size: 30px;
+  line-height: 1;
+  color: var(--bone);
+  letter-spacing: -0.02em;
+}
+.stat-cell .sub {
+  font-size: 9px;
+  color: var(--ink-dim);
+  margin-top: 4px;
+  letter-spacing: 0.1em;
+}
+.breakdown {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  margin-bottom: 20px;
+}
+.breakdown .cell {
+  background: var(--bg-2);
+  padding: 10px 6px;
+  text-align: center;
+}
+.breakdown .cell .label {
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+.breakdown .cell .val {
+  font-family: var(--display);
+  font-size: 22px;
+  color: var(--bone);
+  margin-top: 4px;
+  line-height: 1;
+}
+.breakdown .cell.jab .val { color: var(--red); }
+.breakdown .cell.cross .val { color: var(--gold); }
+.breakdown .cell.hook .val { color: #f97316; }
+.breakdown .cell.upper .val { color: #a3e635; }
+
+.section { margin-bottom: 18px; }
+.section h3 {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section h3::before {
+  content: "";
+  width: 8px; height: 8px;
+  background: var(--red);
+  display: inline-block;
+}
+.canvas-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+  min-height: 120px;
+}
+#graphCanvas, #heatCanvas, #replayCanvas {
+  display: block;
+  width: 100%;
+  background: var(--bg-2);
+}
+.legend {
+  position: absolute;
+  bottom: 8px; right: 10px;
+  font-size: 9px;
+  color: var(--ink-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  display: flex;
+  gap: 10px;
+}
+.legend span { display: inline-flex; align-items: center; gap: 4px; }
+.legend .swatch { width: 8px; height: 8px; display: inline-block; }
+.legend .l { background: var(--red); }
+.legend .r { background: var(--gold); }
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--line);
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.actions button {
+  background: var(--bg-2);
+  color: var(--bone);
+  border: none;
+  padding: 14px 6px;
+  font-family: var(--display);
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.actions button:active { background: var(--bg-3); }
+.actions button.primary { background: var(--red); }
+.actions button.primary:active { background: var(--red-dim); }
+.actions.four { grid-template-columns: 1fr 1fr 1fr 1fr; }
+.actions button.subtle { font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; color: var(--ink-dim); }
+
+.disclaimer {
+  font-size: 10px;
+  color: var(--ink-faint);
+  line-height: 1.6;
+  letter-spacing: 0.03em;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  margin-bottom: 20px;
+  background: rgba(220, 38, 38, 0.03);
+}
+.disclaimer b {
+  color: var(--ink-dim);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 9px;
+}
+
+/* ---------- Replay ---------- */
+#replay-screen { background: #000; }
+.replay-wrap {
+  flex: 1;
+  position: relative;
+  background: var(--bg);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#replayCanvas {
+  max-width: 100%;
+  max-height: 100%;
+  background: var(--bg);
+}
+.replay-controls {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.replay-controls button {
+  background: var(--bg-3);
+  color: var(--bone);
+  border: 1px solid var(--line);
+  width: 44px; height: 44px;
+  font-family: var(--display);
+  font-size: 18px;
+  cursor: pointer;
+}
+.replay-controls button.play { background: var(--red); color: var(--bone); border-color: var(--red); }
+.replay-controls .scrub {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--line);
+  outline: none;
+}
+.replay-controls .scrub::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  background: var(--gold);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.replay-controls .scrub::-moz-range-thumb {
+  width: 18px; height: 18px;
+  background: var(--gold);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+.replay-time {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  letter-spacing: 0.1em;
+  min-width: 70px;
+  text-align: center;
+}
+#downloadVideoBtn {
+  background: transparent;
+  border: 1px solid var(--line-2);
+  color: var(--ink-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+#downloadVideoBtn:hover { color: var(--ink); border-color: var(--ink-dim); }
+#downloadVideoBtn:disabled { opacity: 0.4; cursor: default; }
+
+/* ---------- History / Workouts ---------- */
+#history-screen { background: var(--bg); }
+.history-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+.history-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ink-faint);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.history-item {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  padding: 14px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  align-items: center;
+}
+.history-item:active { background: var(--bg-3); }
+.history-item .date {
+  font-family: var(--display);
+  font-size: 22px;
+  color: var(--bone);
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+.history-item .time {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.history-item .count {
+  font-family: var(--display);
+  font-size: 28px;
+  color: var(--red);
+  text-align: right;
+  line-height: 1;
+}
+.history-item .count-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-dim);
+  letter-spacing: 0.2em;
+  text-align: right;
+  text-transform: uppercase;
+}
+.history-item .source-tag {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-faint);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* ---------- Modal ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-backdrop.active { display: flex; }
+.modal {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  max-width: 360px;
+  width: 100%;
+  padding: 20px;
+}
+.modal h2 {
+  font-family: var(--display);
+  font-size: 24px;
+  margin: 0 0 6px;
+  color: var(--bone);
+  letter-spacing: 0.02em;
+}
+.modal .body {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+  letter-spacing: 0.03em;
+  margin-bottom: 16px;
+}
+.modal .body b { color: var(--bone); }
+.modal .body code {
+  background: var(--bg-3);
+  padding: 2px 6px;
+  font-size: 10px;
+  color: var(--gold);
+  border: 1px solid var(--line);
+}
+.modal .body p { margin: 0 0 10px; }
+.modal .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.toggle {
+  display: inline-flex;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+}
+.toggle button {
+  background: transparent;
+  border: none;
+  color: var(--ink-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 6px 12px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+.toggle button.active { background: var(--red); color: var(--bone); }
+.modal-close {
+  background: var(--red);
+  color: var(--bone);
+  border: none;
+  font-family: var(--display);
+  font-size: 16px;
+  padding: 12px 24px;
+  width: 100%;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed;
+  bottom: 80px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 10px 18px;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  z-index: 500;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  font-family: var(--mono);
+  text-align: center;
+  max-width: 80%;
+}
+.toast.show { opacity: 1; }
+
+/* ---------- Upload progress ---------- */
+#upload-screen { background: var(--bg); align-items: center; justify-content: center; text-align: center; }
+#upload-screen .upload-title {
+  font-family: var(--display);
+  font-size: 36px;
+  color: var(--bone);
+  letter-spacing: -0.01em;
+}
+#upload-screen .upload-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+#upload-screen .progress-bar {
+  width: 240px;
+  height: 4px;
+  background: var(--line);
+  margin-top: 28px;
+  position: relative;
+  overflow: hidden;
+}
+#upload-screen .progress-bar .fill {
+  position: absolute;
+  inset: 0 100% 0 0;
+  background: var(--red);
+  transition: right 0.2s;
+}
+#upload-screen .upload-pct {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  letter-spacing: 0.15em;
+}
+
+@media (max-width: 380px) {
+  .stat-cell .val { font-size: 24px; }
+  .breakdown .cell .val { font-size: 18px; }
+  .hud-tr .punches { font-size: 48px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============== SPLASH ============== -->
+<div id="splash" class="screen active">
+  <h1 class="logo">ACTONBOX</h1>
+  <div class="tag">Boxing Motion Tracker · Acton, MA</div>
+  <div class="splash-actions">
+    <button id="startLiveBtn" class="primary">
+      Live Round
+      <span class="sub">Camera · Real-Time</span>
+    </button>
+    <button id="startUploadBtn">
+      Analyze Video
+      <span class="sub">Upload a clip</span>
+    </button>
+    <button id="historyBtn">
+      Past Workouts
+      <span class="sub" id="historyCountSub">— Saved</span>
+    </button>
+  </div>
+  <div class="loader" id="loader"></div>
+  <div class="footer-link" id="aboutBtn">About · Setup · Privacy</div>
+</div>
+
+<!-- ============== LIVE ============== -->
+<div id="live-screen" class="screen">
+  <div class="topbar">
+    <span class="brand">ACTONBOX<span class="dot"></span></span>
+    <span class="stat" id="recIndicator" style="display:none;">
+      <span class="rec-dot"></span> REC
+    </span>
+    <span class="stat" id="stanceLabel">ORTH</span>
+    <span class="stat">FPS <b id="fpsLabel">—</b></span>
+  </div>
+  <div class="video-wrap" id="videoWrap">
+    <div class="video-frame" id="videoFrame">
+      <video id="video" playsinline webkit-playsinline muted autoplay></video>
+      <canvas id="overlay"></canvas>
+    </div>
+
+    <div class="hud hud-tl">
+      <div>TIME <b id="timeLabel" style="color:var(--bone);">00:00</b></div>
+      <div class="row">ZONES <b id="zoneCount" style="color:var(--bone);">0</b></div>
+    </div>
+    <div class="hud hud-tr">
+      <div class="punches" id="punchLabel">0</div>
+      <div class="label">Strikes</div>
+      <div class="quality-row"><span id="qualityLabel">0</span><span class="qlabel"> quality</span></div>
+    </div>
+    <div class="hud hud-bl">
+      <div class="row">L <b id="lCount">0</b> &nbsp;/&nbsp; R <b id="rCount">0</b></div>
+      <div class="row" id="rateLabel">— /min</div>
+    </div>
+    <div class="hud hud-br">
+      <div class="row">PEAK <b id="peakVel">—</b> m/s</div>
+    </div>
+
+    <div class="banner" id="readyBanner">
+      READY
+      <small>Set zones · Choose stance · Hit REC</small>
+    </div>
+    <div id="zoneHint">
+      <span id="zoneHintText">Tap to Add a Hit Point</span>
+      <small id="zoneHintSub">Tap existing point to remove · Hit Done when finished</small>
+    </div>
+  </div>
+  <div class="controls">
+    <button id="recBtn" class="rec">
+      <span class="icon" id="recIcon">●</span>
+      <span id="recLabel">REC</span>
+    </button>
+    <button id="zoneBtn">
+      <span class="icon">◎</span>
+      <span id="zoneBtnLabel">Zones</span>
+    </button>
+    <button id="drawBtn">
+      <span class="icon">✏</span>
+      <span id="drawBtnLabel">Draw</span>
+    </button>
+    <button id="stanceBtn">
+      <span class="icon">⇋</span>
+      <span>Stance</span>
+    </button>
+    <button id="flipBtn">
+      <span class="icon">⇄</span>
+      <span>Flip</span>
+    </button>
+    <button id="endBtn">
+      <span class="icon">■</span>
+      <span>End</span>
+    </button>
+  </div>
+</div>
+
+<!-- ============== UPLOAD PROGRESS ============== -->
+<div id="upload-screen" class="screen">
+  <div class="upload-title">Analyzing</div>
+  <div class="upload-sub" id="uploadFilename">video.mp4</div>
+  <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
+  <div class="upload-pct" id="progressPct">0%</div>
+</div>
+
+<!-- ============== SUMMARY ============== -->
+<div id="summary-screen" class="screen">
+  <div class="topbar">
+    <span class="brand">ACTONBOX<span class="dot"></span></span>
+    <span class="stat" id="summarySource">SESSION</span>
+  </div>
+  <div class="summary-body" id="summaryBody">
+    <div class="title-block">
+      <div class="kicker">Round Summary</div>
+      <h1 id="summaryDate">—</h1>
+      <div class="meta" id="summaryMeta">—</div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-cell">
+        <div class="label">Time</div>
+        <div class="val" id="sTime">0:00</div>
+        <div class="sub">Duration</div>
+      </div>
+      <div class="stat-cell">
+        <div class="label">Strikes</div>
+        <div class="val" id="sCount">0</div>
+        <div class="sub">Detected</div>
+      </div>
+      <div class="stat-cell">
+        <div class="label">Rate</div>
+        <div class="val" id="sRate">0</div>
+        <div class="sub">Per minute</div>
+      </div>
+      <div class="stat-cell">
+        <div class="label">Quality</div>
+        <div class="val" id="sQuality">0</div>
+        <div class="sub">Clean hits</div>
+      </div>
+    </div>
+
+    <div class="breakdown">
+      <div class="cell jab"><div class="label">Jab</div><div class="val" id="bJab">0</div></div>
+      <div class="cell cross"><div class="label">Cross</div><div class="val" id="bCross">0</div></div>
+      <div class="cell hook"><div class="label">Hook</div><div class="val" id="bHook">0</div></div>
+      <div class="cell upper"><div class="label">Upper</div><div class="val" id="bUpper">0</div></div>
+      <div class="cell other"><div class="label">Other</div><div class="val" id="bOther">0</div></div>
+    </div>
+
+    <div class="section">
+      <h3>Rate Over Time</h3>
+      <div class="canvas-card">
+        <canvas id="graphCanvas" width="600" height="180"></canvas>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Wrist Position Map</h3>
+      <div class="canvas-card">
+        <canvas id="heatCanvas" width="600" height="450"></canvas>
+        <div class="legend">
+          <span><span class="swatch l"></span>Left</span>
+          <span><span class="swatch r"></span>Right</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      <b>What you're looking at:</b> wrist coordinates from 2D pose estimation, classified by elbow-angle dynamics, peak velocity, and trajectory shape. Counts are <em>motion events</em>, not impacts. Lead vs rear (jab vs cross) is inferred from your stance setting — set Orthodox if you lead with your left, Southpaw if you lead with your right.
+    </div>
+  </div>
+  <div class="actions four">
+    <button id="csvBtn" class="subtle">CSV</button>
+    <button id="replayBtn" class="subtle">Replay</button>
+    <button id="discardBtn" class="subtle">Discard</button>
+    <button id="newBtn" class="primary">Done</button>
+  </div>
+</div>
+
+<!-- ============== REPLAY ============== -->
+<div id="replay-screen" class="screen">
+  <div class="topbar">
+    <span class="brand">ACTONBOX<span class="dot"></span></span>
+    <span class="stat">REPLAY</span>
+    <button id="replayBackBtn">← Back</button>
+  </div>
+  <div class="replay-wrap">
+    <canvas id="replayCanvas" width="640" height="480"></canvas>
+  </div>
+  <div class="replay-controls">
+    <button id="replayPlay" class="play"><span id="replayPlayIcon">▶</span></button>
+    <input type="range" id="replayScrub" class="scrub" min="0" max="100" value="0" step="0.1">
+    <span class="replay-time" id="replayTime">0:00 / 0:00</span>
+    <button id="downloadVideoBtn" title="Download replay as video">⬇ Video</button>
+  </div>
+</div>
+
+<!-- ============== HISTORY ============== -->
+<div id="history-screen" class="screen">
+  <div class="topbar">
+    <span class="brand">ACTONBOX<span class="dot"></span></span>
+    <span class="stat">WORKOUTS</span>
+    <button id="historyBackBtn">← Back</button>
+  </div>
+  <div class="history-body" id="historyBody"></div>
+</div>
+
+<!-- ============== ABOUT MODAL ============== -->
+<div class="modal-backdrop" id="aboutModal">
+  <div class="modal">
+    <h2>ACTONBOX</h2>
+    <div class="body">
+      <p><b>Local Setup:</b> Download this <code>index.html</code> to a folder. Run a local web server (camera requires HTTPS or localhost, NOT <code>file://</code>):</p>
+      <p style="font-family:var(--mono);font-size:10px;background:var(--bg-3);padding:8px;border:1px solid var(--line);">cd /path/to/folder<br>python3 -m http.server 8000</p>
+      <p>Then open <code>http://localhost:8000</code> in your browser.</p>
+      <p><b>Wi-Fi:</b> Required on first run to fetch TF.js + MoveNet from the CDN (~5 MB). Browsers cache these, so re-runs work offline until cache clears.</p>
+      <p><b>Storage:</b> Workouts save to this browser's <code>localStorage</code>, on this device only. Up to 50 sessions kept. Clearing browser data deletes them.</p>
+      <p><b>Privacy:</b> Camera frames never leave your device. Only the open-source pose model is loaded over the network.</p>
+    </div>
+    <div class="row">
+      <span>Stance</span>
+      <div class="toggle">
+        <button id="stanceToggleOrtho" class="active">Orthodox</button>
+        <button id="stanceToggleSouth">Southpaw</button>
+      </div>
+    </div>
+    <div class="row">
+      <span>Clear all workouts</span>
+      <button id="clearAllBtn" style="background:var(--bg-3);border:1px solid var(--red-dim);color:var(--red);font-family:var(--mono);font-size:10px;padding:6px 10px;letter-spacing:0.15em;cursor:pointer;">DELETE</button>
+    </div>
+    <button class="modal-close" id="aboutCloseBtn">Close</button>
+  </div>
+</div>
+
+<!-- Hidden file input -->
+<input type="file" id="fileInput" accept="video/*" style="display:none;">
+
+<div class="toast" id="toast"></div>
+
+<!-- TF.js + pose-detection from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.20.0/dist/tf-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.20.0/dist/tf-converter.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.20.0/dist/tf-backend-webgl.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@4.20.0/dist/tf-backend-wasm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.20.0/dist/tf-backend-cpu.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
+
+<script>
+"use strict";
+
+/* =====================================================
+   CONFIG
+   ===================================================== */
+const CONFIG = {
+  WINDOW_SIZE: 20,            // larger buffer helps at low FPS (15-20fps on mobile)
+  MIN_CONF_WRIST: 0.05,       // motion blur on mobile drops wrist confidence
+  MIN_CONF_ELBOW: 0.08,
+  MIN_CONF_SHOULDER: 0.10,
+  MIN_CONF_HIP: 0.08,
+
+  TRIGGER_VEL_MPS: 0.3,         // fires on almost any intentional wrist movement
+  EXIT_VEL_MPS: 0.20,         // lower = window closes sooner after wrist slows
+  CLASSIFY_MAX_MS: 600,         // at 15fps, 9 frames = 600ms window
+
+  JAB_MIN_ANGLE: 100,           // very permissive: catches short jabs and body shots
+  JAB_Y_FLAT_RATIO: 0.80,       // wide but not so wide vertical motion misclassifies as jab
+  HOOK_MIN_ELBOW: 30,
+  HOOK_MAX_ELBOW: 160,
+  HOOK_MIN_SHOULDER_ANGLE: 30,
+  HOOK_MAX_SHOULDER_ANGLE: 160,
+  HOOK_X_RATIO: 0.20,
+  UPPER_MAX_ELBOW: 160,
+  UPPER_DIP_MIN_PX_RATIO: 0.06, // require real dip, not jitter
+
+  TORSO_REAL_M: 0.55,
+  ASSUMED_PPM: 254,             // fallback px/m when body landmarks not visible
+  SHOULDER_REAL_M: 0.42,        // fallback if hips invisible
+
+  MAX_REPLAY_FRAMES: 1500,
+  MAX_CSV_ROWS: 30000,
+  REPLAY_SAMPLE_EVERY: 3,
+  PUNCH_COOLDOWN_MS: 180,  // 180ms cooldown between punches on same hand
+  QUALITY_THRESHOLD: 0.75,
+
+  FPS_ALPHA: 0.15,
+  MAX_HISTORY: 50,
+  STORAGE_KEY: 'actonbox.workouts.v1',
+  STANCE_KEY: 'actonbox.stance.v1',
+};
+
+const KP = {
+  NOSE: 0, L_EYE: 1, R_EYE: 2, L_EAR: 3, R_EAR: 4,
+  L_SHOULDER: 5, R_SHOULDER: 6,
+  L_ELBOW: 7, R_ELBOW: 8,
+  L_WRIST: 9, R_WRIST: 10,
+  L_HIP: 11, R_HIP: 12,
+  L_KNEE: 13, R_KNEE: 14,
+  L_ANKLE: 15, R_ANKLE: 16,
+};
+
+const SKELETON = [
+  [5,7],[7,9],[6,8],[8,10],
+  [5,6],[5,11],[6,12],[11,12],
+  [11,13],[13,15],[12,14],[14,16],
+  [0,5],[0,6]
+];
+
+const KP_NAMES = ['nose','leye','reye','lear','rear','lsh','rsh','lelb','relb',
+                  'lwr','rwr','lhip','rhip','lkn','rkn','lank','rank'];
+
+/* =====================================================
+   STATE
+   ===================================================== */
+const STATE = {
+  detector: null,
+  stream: null,
+  facingMode: 'user',
+  recordingFacingMode: 'user',
+  source: 'live',             // 'live' or 'upload'
+  running: false,
+  recording: false,
+  startT: 0,
+  punches: [],
+  replay: [],
+  csv: [],
+  hitZones: [],               // array of {cx, cy, r} in normalized data coords
+  qualityPunches: 0,
+  audioCtx: null,
+  roomSnapshot: null,
+  snapshotTaken: false,
+  zoneSetting: false,
+  drawSetting: false,
+  drawPoints: [],        // freehand polygon points [{x,y} normalized]
+  stance: 'orthodox',         // 'orthodox' | 'southpaw'
+  fps: 0,
+  fpsCount: 0,
+  fpsT: 0,
+  videoW: 640,
+  videoH: 480,
+  loopId: 0,
+  peakVel: 0,
+  analyzer: null,
+  uploadVideo: null,
+};
+
+/* =====================================================
+   DOM
+   ===================================================== */
+const $ = (id) => document.getElementById(id);
+const splash = $('splash');
+const liveScreen = $('live-screen');
+const summaryScreen = $('summary-screen');
+const replayScreen = $('replay-screen');
+const historyScreen = $('history-screen');
+const uploadScreen = $('upload-screen');
+const video = $('video');
+const overlay = $('overlay');
+const overlayCtx = overlay.getContext('2d');
+const videoWrap = $('videoWrap');
+const videoFrame = $('videoFrame');
+const loader = $('loader');
+const toast = $('toast');
+
+let toastTimer = 0;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+}
+
+function setScreen(name) {
+  for (const el of [splash, liveScreen, summaryScreen, replayScreen, historyScreen, uploadScreen]) {
+    el.classList.remove('active');
+  }
+  ({
+    splash, live: liveScreen, summary: summaryScreen, replay: replayScreen,
+    history: historyScreen, upload: uploadScreen
+  })[name].classList.add('active');
+}
+
+/* =====================================================
+   GEOMETRY
+   ===================================================== */
+function angleAt(a, b, c) {
+  if (!a || !b || !c) return null;
+  const v1x = a.x - b.x, v1y = a.y - b.y;
+  const v2x = c.x - b.x, v2y = c.y - b.y;
+  const m1 = Math.hypot(v1x, v1y);
+  const m2 = Math.hypot(v2x, v2y);
+  if (m1 < 1e-3 || m2 < 1e-3) return null;
+  const c2 = Math.max(-1, Math.min(1, (v1x * v2x + v1y * v2y) / (m1 * m2)));
+  return Math.acos(c2) * 180 / Math.PI;
+}
+
+function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+/* =====================================================
+   BOXING ANALYZER (the pro's spec)
+   ===================================================== */
+class BoxingAnalyzer {
+  /*
+    States per hand:
+      GUARD            — at rest; watch for velocity spike to enter PUNCH_INITIATED
+      PUNCH_INITIATED  — accumulating frames; track angles, ΔX, ΔY; on exit, classify
+      DEBOUNCE_RESET   — punch counted; wait for wrist near face before re-arming
+  */
+  constructor(stance = 'orthodox') {
+    this.stance = stance;
+    this.window = []; // [{t, kps, perSide, ppm}]
+    this.handState = {
+      left:  this._freshHand(),
+      right: this._freshHand(),
+    };
+    this.peakVel = 0;
+  }
+  setStance(s) { this.stance = s; }
+  _freshHand() {
+    return {
+      state: 'GUARD',
+      windowStartT: 0,
+      peakAngle: 0,
+      minAngle: 999,
+      peakAngleT: 0,
+      maxX: 0, minX: 1e9, maxY: 0, minY: 1e9,
+      maxShoulderAngle: 0,
+      yTrajectory: [],
+      lastPunchT: 0,
+      classifiedT: 0,
+      peakWrist: null,
+      startWrist: null,   // wrist position when PUNCH_INITIATED began
+      startNose: null,    // nose position when PUNCH_INITIATED began (retraction filter)
+    };
+  }
+  reset() {
+    this.window = [];
+    this.handState.left = this._freshHand();
+    this.handState.right = this._freshHand();
+    this.peakVel = 0;
+  }
+
+  /* px-per-meter using torso height as the primary anchor. Torso is more
+     perspective-stable than shoulder width when boxer turns sideways. */
+  _pixelsPerMeter(kps) {
+    const ls = kps[KP.L_SHOULDER], rs = kps[KP.R_SHOULDER];
+    const lh = kps[KP.L_HIP], rh = kps[KP.R_HIP];
+    // Average of left and right torso lengths if both visible
+    let torsoPx = null;
+    if (ls && lh && ls.score >= CONFIG.MIN_CONF_SHOULDER && lh.score >= CONFIG.MIN_CONF_HIP) {
+      const l = dist(ls, lh);
+      if (l > 20) torsoPx = l;
+    }
+    if (rs && rh && rs.score >= CONFIG.MIN_CONF_SHOULDER && rh.score >= CONFIG.MIN_CONF_HIP) {
+      const r = dist(rs, rh);
+      if (r > 20) torsoPx = torsoPx === null ? r : (torsoPx + r) / 2;
+    }
+    if (torsoPx !== null) return torsoPx / CONFIG.TORSO_REAL_M;
+
+    // Fallback: shoulder width
+    if (ls && rs && ls.score >= CONFIG.MIN_CONF_SHOULDER && rs.score >= CONFIG.MIN_CONF_SHOULDER) {
+      const w = dist(ls, rs);
+      if (w > 20) return w / CONFIG.SHOULDER_REAL_M;
+    }
+    // Last resort: assume person is at normal training distance.
+    // 254 px/m ≈ person standing 1m from phone at 640px frame width.
+    // Wrong by maybe ±40%, but far better than dropping every frame.
+    return CONFIG.ASSUMED_PPM;
+  }
+
+  _sideData(kps, side) {
+    const map = side === 'left'
+      ? { w: KP.L_WRIST, e: KP.L_ELBOW, s: KP.L_SHOULDER, h: KP.L_HIP, ear: KP.L_EAR }
+      : { w: KP.R_WRIST, e: KP.R_ELBOW, s: KP.R_SHOULDER, h: KP.R_HIP, ear: KP.R_EAR };
+    const w = kps[map.w], e = kps[map.e], s = kps[map.s], h = kps[map.h];
+    const okWrist    = w && w.score >= CONFIG.MIN_CONF_WRIST;
+    const okElbow    = e && e.score >= CONFIG.MIN_CONF_ELBOW;
+    const okShoulder = s && s.score >= CONFIG.MIN_CONF_SHOULDER;
+    // valid = wrist only. Elbow/shoulder used for classification but NOT required
+    // to count the trigger — motion blur kills those during fast punches.
+    const valid = okWrist;
+    const hasGeometry = okWrist && okElbow && okShoulder;
+    const elbowAngle    = hasGeometry ? angleAt(s, e, w) : null;
+    const shoulderAngle = (hasGeometry && h && h.score >= CONFIG.MIN_CONF_HIP)
+      ? angleAt(h, s, e) : null;
+    return {
+      valid, wrist: w, elbow: e, shoulder: s, hip: h, ear: kps[map.ear],
+      elbowAngle, shoulderAngle,
+    };
+  }
+
+  _isLead(side) {
+    if (this.stance === 'orthodox') return side === 'left';
+    return side === 'right'; // southpaw
+  }
+
+  /*
+    Main entry. Called once per frame with raw MoveNet keypoints.
+    Returns: { punches: [...], leftElbowAngle, rightElbowAngle, states, peakVelMps }
+  */
+  analyzeBoxingFrame(kps, t, W, H) {
+    const ppm = this._pixelsPerMeter(kps);
+    const perSide = {
+      left:  this._sideData(kps, 'left'),
+      right: this._sideData(kps, 'right'),
+    };
+
+    // Push to sliding window
+    this.window.push({ t, kps, perSide, ppm });
+    if (this.window.length > CONFIG.WINDOW_SIZE) this.window.shift();
+
+    const out = {
+      punches: [],
+      leftElbowAngle: perSide.left.elbowAngle,
+      rightElbowAngle: perSide.right.elbowAngle,
+      states: { left: this.handState.left.state, right: this.handState.right.state },
+      peakVelMps: 0,
+    };
+
+    if (this.window.length < 2) return out;
+
+    const cur = this.window[this.window.length - 1];
+    const prev = this.window[this.window.length - 2];
+    const dt = (cur.t - prev.t) / 1000;
+    if (dt <= 0 || dt > 0.5) return out;   // allow up to 2fps before dropping frame
+
+    let frameMaxVel = 0;
+    for (const side of ['left', 'right']) {
+      const st = this.handState[side];
+      const cd = cur.perSide[side];
+      const pd = prev.perSide[side];
+
+      // Need wrist visible in current frame for any analysis.
+      // On mobile, accept frames where wrist is tracked even if other kps are low-confidence.
+      if (!cd.valid) {
+        // Brief invisibility: don't reset state, just skip this frame.
+        continue;
+      }
+      if (!pd.valid) continue; // need prev frame too for velocity
+
+      const dxPx = cd.wrist.x - pd.wrist.x;
+      const dyPx = cd.wrist.y - pd.wrist.y;
+      const stepPx = Math.hypot(dxPx, dyPx);
+      const velMps = (stepPx / cur.ppm) / dt;
+      if (velMps > frameMaxVel) frameMaxVel = velMps;
+
+      // ---------- STATE: GUARD ----------
+      if (st.state === 'GUARD') {
+        if (velMps > CONFIG.TRIGGER_VEL_MPS) {
+          st.state = 'PUNCH_INITIATED';
+          st.windowStartT = cur.t;
+          st.peakAngle = cd.elbowAngle || 0;
+          st.minAngle = cd.elbowAngle || 999;
+          st.peakAngleT = cur.t;
+          st.maxX = cd.wrist.x; st.minX = cd.wrist.x;
+          st.maxY = cd.wrist.y; st.minY = cd.wrist.y;
+          st.maxShoulderAngle = cd.shoulderAngle || 0;
+          st.yTrajectory = [cd.wrist.y];
+          st.peakWrist = { x: cd.wrist.x, y: cd.wrist.y };
+          st.startWrist = { x: cd.wrist.x, y: cd.wrist.y };
+          const nose0 = cur.kps[KP.NOSE];
+          st.startNose = (nose0 && nose0.score >= 0.20) ? { x: nose0.x, y: nose0.y } : null;
+        }
+      }
+
+      // ---------- STATE: PUNCH_INITIATED ----------
+      else if (st.state === 'PUNCH_INITIATED') {
+        // Accumulate bounds
+        if (cd.wrist.x > st.maxX) st.maxX = cd.wrist.x;
+        if (cd.wrist.x < st.minX) st.minX = cd.wrist.x;
+        if (cd.wrist.y > st.maxY) st.maxY = cd.wrist.y;
+        if (cd.wrist.y < st.minY) st.minY = cd.wrist.y;
+        st.yTrajectory.push(cd.wrist.y);
+
+        // Always track the wrist position of maximum displacement from start.
+        // This works even when elbow angle is null (motion blur / occlusion).
+        if (st.startWrist) {
+          const dNow  = dist(cd.wrist, st.startWrist);
+          const dPeak = st.peakWrist ? dist(st.peakWrist, st.startWrist) : -1;
+          if (dNow > dPeak) st.peakWrist = { x: cd.wrist.x, y: cd.wrist.y };
+        }
+        if (cd.elbowAngle !== null) {
+          if (cd.elbowAngle > st.peakAngle) {
+            st.peakAngle = cd.elbowAngle;
+            st.peakAngleT = cur.t;
+          }
+          if (cd.elbowAngle < st.minAngle) st.minAngle = cd.elbowAngle;
+        }
+        if (cd.shoulderAngle !== null && cd.shoulderAngle > st.maxShoulderAngle) {
+          st.maxShoulderAngle = cd.shoulderAngle;
+        }
+
+        // Exit when velocity drops OR window is full
+        const elapsed = cur.t - st.windowStartT;
+        const shouldClassify = velMps < CONFIG.EXIT_VEL_MPS || elapsed > CONFIG.CLASSIFY_MAX_MS;
+
+        if (shouldClassify) {
+          const subWindow = this.window.filter(f => f.t >= st.windowStartT);
+          const result = this._classify(side, st, subWindow, cur.ppm);
+          if (result.type && (cur.t - st.lastPunchT) > CONFIG.PUNCH_COOLDOWN_MS) {
+            const w = st.peakWrist;
+            const nx = w.x / W;
+            const ny = w.y / H;
+            // Analyzer is decoupled from zone state. The caller (live loop or
+            // upload handler) applies the hit-zone filter after this returns.
+            out.punches.push({
+              side, type: result.type,
+              confidence: result.confidence,
+              nx, ny,
+              vel: +result.peakVelMps.toFixed(2),
+              elbowAngle: +st.peakAngle.toFixed(1),
+              t: cur.t,
+            });
+            st.lastPunchT = cur.t;
+          }
+          st.classifiedT = cur.t;
+          st.state = 'DEBOUNCE_RESET';
+        }
+      }
+
+      // ---------- STATE: DEBOUNCE_RESET ----------
+      // Simple time-based re-arm. Spatial checks (ear/nose proximity) fail too often
+      // on mobile because the head moves during training and landmark scores drop.
+      // lastPunchT cooldown already prevents double-counting within a motion.
+      else if (st.state === 'DEBOUNCE_RESET') {
+        if (cur.t - st.classifiedT > CONFIG.PUNCH_COOLDOWN_MS) {
+          st.state = 'GUARD';
+        }
+      }
+    }
+
+    if (frameMaxVel > this.peakVel) this.peakVel = frameMaxVel;
+    out.peakVelMps = frameMaxVel;
+    return out;
+  }
+
+  _classify(side, st, subWindow, ppm) {
+    const dx = st.maxX - st.minX;
+    const dy = st.maxY - st.minY;
+    const total = dx + dy;
+    if (total < 1) return { type: null, confidence: 0, peakVelMps: 0 };
+    const xRatio = dx / total;
+    const yRatio = dy / total;
+
+    // Peak velocity across the punch
+    let peakVel = 0;
+    for (let i = 1; i < subWindow.length; i++) {
+      const a = subWindow[i].perSide[side], b = subWindow[i-1].perSide[side];
+      if (!a.valid || !b.valid) continue;
+      const ddt = (subWindow[i].t - subWindow[i-1].t) / 1000;
+      if (ddt <= 0) continue;
+      const v = (dist(a.wrist, b.wrist) / subWindow[i].ppm) / ddt;
+      if (v > peakVel) peakVel = v;
+    }
+
+    // ----- JAB / CROSS -----
+    if (st.peakAngle >= CONFIG.JAB_MIN_ANGLE && yRatio <= CONFIG.JAB_Y_FLAT_RATIO) {
+      const isLead = this._isLead(side);
+      const type = isLead ? 'jab' : 'cross';
+      const angleScore = Math.min(1, (st.peakAngle - CONFIG.JAB_MIN_ANGLE) / 25);
+      const flatScore = Math.min(1, (CONFIG.JAB_Y_FLAT_RATIO - yRatio) / 0.4);
+      const velScore = Math.min(1, peakVel / 5);
+      const conf = Math.max(0.5, (angleScore + flatScore + velScore) / 3);
+      return { type, confidence: +conf.toFixed(2), peakVelMps: peakVel };
+    }
+
+    // ----- HOOK -----
+    if (st.minAngle >= CONFIG.HOOK_MIN_ELBOW &&
+        st.peakAngle <= CONFIG.HOOK_MAX_ELBOW &&
+        st.maxShoulderAngle >= CONFIG.HOOK_MIN_SHOULDER_ANGLE &&
+        st.maxShoulderAngle <= CONFIG.HOOK_MAX_SHOULDER_ANGLE &&
+        xRatio >= CONFIG.HOOK_X_RATIO) {
+      const arcScore = Math.min(1, xRatio);
+      const lockScore = (st.peakAngle - st.minAngle) < 35 ? 1 : 0.6;
+      const velScore = Math.min(1, peakVel / 5);
+      const conf = Math.max(0.5, (arcScore + lockScore + velScore) / 3);
+      return { type: 'hook', confidence: +conf.toFixed(2), peakVelMps: peakVel };
+    }
+
+    // ----- UPPERCUT -----
+    // Requires: bent elbow, dip-then-rise trajectory.
+    // Extra guard: the rise must end in the upper half of the wrist's own range —
+    // retractions also dip then rise but end at guard height, not chin height.
+    if (st.peakAngle <= CONFIG.UPPER_MAX_ELBOW && st.yTrajectory.length >= 4) {
+      const ys = st.yTrajectory;
+      let maxYi = 0, minYi = 0;
+      for (let i = 0; i < ys.length; i++) {
+        if (ys[i] > ys[maxYi]) maxYi = i;
+        if (ys[i] < ys[minYi]) minYi = i;
+      }
+      if (maxYi < minYi) {
+        const dipMagnitudePx = ys[maxYi] - ys[minYi];
+        const torsoPx = CONFIG.TORSO_REAL_M * ppm;
+        const dipRatio = dipMagnitudePx / torsoPx;
+        // Minimum dip 6% of torso; the final wrist y must be <= the starting wrist y
+        // (i.e. ended higher than it started — real uppercut drives upward)
+        const finalY = ys[ys.length - 1];
+        const startY = ys[0];
+        if (dipRatio >= CONFIG.UPPER_DIP_MIN_PX_RATIO && finalY < startY) {
+          const dipScore = Math.min(1, dipRatio / 0.5);
+          const velScore = Math.min(1, peakVel / 4);
+          const conf = Math.max(0.5, (dipScore + velScore) / 2);
+          return { type: 'uppercut', confidence: +conf.toFixed(2), peakVelMps: peakVel };
+        }
+      }
+    }
+
+    // ----- CATCH-ALL: any motion that cleared the velocity trigger and moved enough -----
+    // 3% of torso height required. Also reject retractions: peakWrist must be
+    // at least as far from the nose as startWrist was (or nose not available).
+    const minDistPx = CONFIG.TORSO_REAL_M * ppm * 0.03;
+    const totalTravel = Math.hypot(st.maxX - st.minX, st.maxY - st.minY);
+    if (totalTravel >= minDistPx && subWindow.length >= 2) {
+      // Retraction filter: if nose visible, peak must be farther from nose than start
+      if (st.startNose && st.startWrist && st.peakWrist) {
+        const dStart = dist(st.startWrist, st.startNose);
+        const dPeak  = dist(st.peakWrist,  st.startNose);
+        if (dPeak < dStart * 0.95) {
+          return { type: null, confidence: 0, peakVelMps: peakVel }; // retraction
+        }
+      }
+      return { type: 'punch', confidence: 0.5, peakVelMps: peakVel };
+    }
+    return { type: null, confidence: 0, peakVelMps: peakVel };
+  }
+}
+
+/* =====================================================
+   STORAGE (localStorage)
+   ===================================================== */
+const Storage = {
+  loadAll() {
+    try {
+      const raw = localStorage.getItem(CONFIG.STORAGE_KEY);
+      if (!raw) return [];
+      return JSON.parse(raw);
+    } catch (e) { console.warn('History load failed', e); return []; }
+  },
+  saveAll(arr) {
+    try {
+      localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(arr));
+      return true;
+    } catch (e) {
+      console.warn('History save failed (quota?)', e);
+      showToast('Storage full — clear old workouts');
+      return false;
+    }
+  },
+  add(entry) {
+    let all = this.loadAll();
+    all.unshift(entry);
+    if (all.length > CONFIG.MAX_HISTORY) all = all.slice(0, CONFIG.MAX_HISTORY);
+    return this.saveAll(all);
+  },
+  delete(id) {
+    const all = this.loadAll().filter(e => e.id !== id);
+    return this.saveAll(all);
+  },
+  clear() { localStorage.removeItem(CONFIG.STORAGE_KEY); },
+  loadStance() {
+    return localStorage.getItem(CONFIG.STANCE_KEY) || 'orthodox';
+  },
+  saveStance(s) { localStorage.setItem(CONFIG.STANCE_KEY, s); },
+};
+
+/* =====================================================
+   MODEL + CAMERA
+   ===================================================== */
+async function pickBackend() {
+  const tryB = async (name) => {
+    try { await tf.setBackend(name); await tf.ready(); return tf.getBackend() === name; }
+    catch (e) { return false; }
+  };
+  if (await tryB('webgl')) return 'webgl';
+  loader.textContent = 'WebGL unavailable — trying WASM';
+  if (await tryB('wasm')) return 'wasm';
+  loader.textContent = 'WASM unavailable — using CPU (slow)';
+  if (await tryB('cpu')) return 'cpu';
+  throw new Error('No TF backend available');
+}
+
+async function loadDetector() {
+  loader.textContent = 'Loading MoveNet…';
+  return await poseDetection.createDetector(
+    poseDetection.SupportedModels.MoveNet,
+    {
+      modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+      enableSmoothing: true,
+    }
+  );
+}
+
+async function ensureDetector() {
+  if (STATE.detector) return;
+  const backend = await pickBackend();
+  loader.textContent = `Backend: ${backend} · loading model…`;
+  STATE.detector = await loadDetector();
+}
+
+async function setupCamera(facingMode) {
+  if (STATE.stream) { STATE.stream.getTracks().forEach(t => t.stop()); STATE.stream = null; }
+  const constraints = {
+    audio: false,
+    video: { facingMode: { ideal: facingMode }, width: { ideal: 640 }, height: { ideal: 480 } }
+  };
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  STATE.stream = stream;
+  video.srcObject = stream;
+  await new Promise((resolve) => {
+    if (video.readyState >= 2) return resolve();
+    video.onloadedmetadata = () => resolve();
+  });
+  await video.play();
+  STATE.videoW = video.videoWidth || 640;
+  STATE.videoH = video.videoHeight || 480;
+  sizeOverlay();
+}
+
+function sizeOverlay() {
+  overlay.width = STATE.videoW;
+  overlay.height = STATE.videoH;
+  videoFrame.style.aspectRatio = STATE.videoW + ' / ' + STATE.videoH;
+  videoFrame.classList.toggle('mirror', STATE.facingMode === 'user' && STATE.source === 'live');
+}
+
+/* =====================================================
+   DRAW
+   ===================================================== */
+function drawSkeleton(kps) {
+  overlayCtx.lineWidth = 3;
+  for (const [a, b] of SKELETON) {
+    const ka = kps[a], kb = kps[b];
+    if (!ka || !kb || ka.score < 0.25 || kb.score < 0.25) continue;
+    const isArm = (a === 5 && b === 7) || (a === 7 && b === 9) ||
+                  (a === 6 && b === 8) || (a === 8 && b === 10);
+    overlayCtx.strokeStyle = isArm ? '#dc2626' : '#f4f1ea';
+    overlayCtx.beginPath();
+    overlayCtx.moveTo(ka.x, ka.y);
+    overlayCtx.lineTo(kb.x, kb.y);
+    overlayCtx.stroke();
+  }
+  for (let i = 0; i < kps.length; i++) {
+    const k = kps[i];
+    if (!k || k.score < 0.25) continue;
+    const r = (i === KP.L_WRIST || i === KP.R_WRIST) ? 6 : 3;
+    overlayCtx.fillStyle = (i === KP.L_WRIST) ? '#dc2626'
+                        : (i === KP.R_WRIST) ? '#fbbf24'
+                        : '#f4f1ea';
+    overlayCtx.beginPath();
+    overlayCtx.arc(k.x, k.y, r, 0, Math.PI * 2);
+    overlayCtx.fill();
+  }
+}
+
+function passesZoneFilter(nx, ny) {
+  if (STATE.hitZones.length === 0) return true;
+  for (const z of STATE.hitZones) {
+    if (z.type === 'polygon') {
+      if (pointInPolygon(nx, ny, z.pts)) return true;
+    } else {
+      if (Math.hypot(nx - z.cx, ny - z.cy) < z.r) return true;
+    }
+  }
+  return false;
+}
+
+// Ray-casting point-in-polygon test (normalized coords)
+function pointInPolygon(x, y, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const xi = pts[i].x, yi = pts[i].y;
+    const xj = pts[j].x, yj = pts[j].y;
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function drawHitZones() {
+  const W = overlay.width, H = overlay.height;
+  // The overlay canvas is inside the CSS-mirrored videoFrame (scaleX(-1) when
+  // facingMode='user'). CSS already handles the visual flip, so we draw at raw
+  // data coords. DO NOT flip here — that would double-mirror.
+  const xOf = nx => nx * W;
+
+  if (STATE.hitZones.length > 0) {
+    overlayCtx.lineWidth = 2;
+    overlayCtx.setLineDash([8, 6]);
+    for (const z of STATE.hitZones) {
+      overlayCtx.strokeStyle = 'rgba(251, 191, 36, 0.80)';
+      overlayCtx.fillStyle = 'rgba(251, 191, 36, 0.10)';
+      if (z.type === 'polygon') {
+        if (z.pts.length < 2) continue;
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(xOf(z.pts[0].x), z.pts[0].y * H);
+        for (let i = 1; i < z.pts.length; i++) {
+          overlayCtx.lineTo(xOf(z.pts[i].x), z.pts[i].y * H);
+        }
+        overlayCtx.closePath();
+        overlayCtx.fill(); overlayCtx.stroke();
+      } else {
+        const cx = xOf(z.cx), cy = z.cy * H, rr = z.r * Math.min(W, H);
+        overlayCtx.beginPath();
+        overlayCtx.arc(cx, cy, rr, 0, Math.PI * 2);
+        overlayCtx.fill(); overlayCtx.stroke();
+        overlayCtx.fillStyle = 'rgba(251, 191, 36, 0.95)';
+        overlayCtx.beginPath();
+        overlayCtx.arc(cx, cy, 3, 0, Math.PI * 2);
+        overlayCtx.fill();
+      }
+    }
+    overlayCtx.setLineDash([]);
+  }
+
+  // In-progress freehand drawing
+  if (STATE.drawSetting && STATE.drawPoints.length >= 1) {
+    const pts = STATE.drawPoints;
+    overlayCtx.strokeStyle = 'rgba(251, 191, 36, 0.95)';
+    overlayCtx.fillStyle = 'rgba(251, 191, 36, 0.10)';
+    overlayCtx.setLineDash([4, 3]);
+    overlayCtx.lineWidth = 2.5;
+    overlayCtx.lineCap = 'round';
+    overlayCtx.lineJoin = 'round';
+    overlayCtx.beginPath();
+    overlayCtx.moveTo(xOf(pts[0].x), pts[0].y * H);
+    for (let i = 1; i < pts.length; i++) overlayCtx.lineTo(xOf(pts[i].x), pts[i].y * H);
+    overlayCtx.stroke();
+    overlayCtx.setLineDash([]);
+    overlayCtx.lineCap = 'butt'; overlayCtx.lineJoin = 'miter';
+    // Closing line back to start (preview)
+    if (pts.length >= 3) {
+      overlayCtx.setLineDash([3, 5]);
+      overlayCtx.strokeStyle = 'rgba(251, 191, 36, 0.40)';
+      overlayCtx.lineWidth = 1.5;
+      overlayCtx.beginPath();
+      overlayCtx.moveTo(xOf(pts[pts.length - 1].x), pts[pts.length - 1].y * H);
+      overlayCtx.lineTo(xOf(pts[0].x), pts[0].y * H);
+      overlayCtx.stroke();
+      overlayCtx.setLineDash([]);
+    }
+  }
+}
+
+function getAudioCtx() {
+  if (!STATE.audioCtx) {
+    try { STATE.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e) { STATE.audioCtx = null; }
+  }
+  return STATE.audioCtx;
+}
+
+function playHitSound(quality) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+  const now = ctx.currentTime;
+  // Low thump
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(quality ? 110 : 80, now);
+  osc.frequency.exponentialRampToValueAtTime(30, now + 0.12);
+  gain.gain.setValueAtTime(quality ? 0.55 : 0.35, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(now); osc.stop(now + 0.18);
+  // Sharp crack
+  const osc2 = ctx.createOscillator();
+  const gain2 = ctx.createGain();
+  osc2.type = 'square';
+  osc2.frequency.setValueAtTime(quality ? 220 : 160, now);
+  osc2.frequency.exponentialRampToValueAtTime(60, now + 0.04);
+  gain2.gain.setValueAtTime(quality ? 0.25 : 0.15, now);
+  gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+  osc2.connect(gain2); gain2.connect(ctx.destination);
+  osc2.start(now); osc2.stop(now + 0.05);
+}
+
+function flashPunch(hit) {
+  const f = document.createElement('div');
+  f.className = 'flash ' + hit.side;
+  f.style.left = (hit.nx * 100) + '%';
+  f.style.top = (hit.ny * 100) + '%';
+  videoFrame.appendChild(f);
+  setTimeout(() => f.remove(), 600);
+
+  const lbl = document.createElement('div');
+  lbl.className = 'punch-label';
+  lbl.textContent = hit.type;
+  lbl.style.left = (hit.nx * 100) + '%';
+  lbl.style.top = (hit.ny * 100) + '%';
+  lbl.style.color = hit.side === 'left' ? '#dc2626' : '#fbbf24';
+  videoFrame.appendChild(lbl);
+  setTimeout(() => lbl.remove(), 700);
+}
+
+function smoothFPS(prev, cur) { return prev === 0 ? cur : prev + CONFIG.FPS_ALPHA * (cur - prev); }
+function fmtTime(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return String(Math.floor(s / 60)) + ':' + String(s % 60).padStart(2, '0');
+}
+
+function updateHUD() {
+  $('fpsLabel').textContent = STATE.fps ? Math.round(STATE.fps) : '—';
+  const elapsed = STATE.recording ? (performance.now() - STATE.startT) : 0;
+  $('timeLabel').textContent = fmtTime(elapsed);
+  $('zoneCount').textContent = STATE.hitZones.length;
+  $('peakVel').textContent = STATE.peakVel > 0 ? STATE.peakVel.toFixed(1) : '—';
+  $('stanceLabel').textContent = STATE.stance === 'orthodox' ? 'ORTH' : 'SOUTH';
+  const total = STATE.punches.length;
+  $('punchLabel').textContent = total;
+  $('qualityLabel').textContent = STATE.qualityPunches;
+  let l = 0, r = 0;
+  for (const p of STATE.punches) { if (p.side === 'left') l++; else r++; }
+  $('lCount').textContent = l;
+  $('rCount').textContent = r;
+  const mins = elapsed / 60000;
+  const rate = mins > 0.05 ? Math.round(total / mins) : 0;
+  $('rateLabel').textContent = rate + ' /min';
+}
+
+/* =====================================================
+   LIVE LOOP
+   ===================================================== */
+let _loopActive = false; // guard against concurrent loop executions on slow devices
+async function loop() {
+  if (!STATE.running) return;
+  if (_loopActive) return;            // previous frame still processing — skip this tick
+  _loopActive = true;
+
+  const t = performance.now();
+  let poses = [];
+  try {
+    poses = await STATE.detector.estimatePoses(video, { flipHorizontal: false });
+  } catch (e) {
+    console.error('Estimation error:', e);
+  }
+
+  STATE.fpsCount++;
+  const fpsDt = t - STATE.fpsT;
+  if (fpsDt > 500) {
+    STATE.fps = smoothFPS(STATE.fps, STATE.fpsCount * 1000 / fpsDt);
+    STATE.fpsCount = 0;
+    STATE.fpsT = t;
+  }
+
+  overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+
+  if (poses.length > 0 && poses[0].keypoints) {
+    const kps = poses[0].keypoints;
+    drawSkeleton(kps);
+    drawHitZones();
+    if (STATE.recording) {
+      updateAvgKeypoints(kps);
+      if (!STATE.snapshotTaken && (performance.now() - STATE.startT) >= 10000) {
+        STATE.snapshotTaken = true;
+        try {
+          const sc = document.createElement('canvas');
+          sc.width = video.videoWidth || 640;
+          sc.height = video.videoHeight || 480;
+          const sctx = sc.getContext('2d');
+          if (STATE.recordingFacingMode === 'user') {
+            sctx.translate(sc.width, 0); sctx.scale(-1, 1);
+          }
+          sctx.drawImage(video, 0, 0, sc.width, sc.height);
+          createImageBitmap(sc).then(bmp => { STATE.roomSnapshot = bmp; });
+        } catch(e) { console.warn('Snapshot failed:', e); }
+      }
+    }
+
+    if (STATE.recording) {
+      const result = STATE.analyzer.analyzeBoxingFrame(kps, t, overlay.width, overlay.height);
+      if (result.peakVelMps > STATE.peakVel) STATE.peakVel = result.peakVelMps;
+
+      for (const hit of result.punches) {
+        if (!passesZoneFilter(hit.nx, hit.ny)) continue;
+        const sessionT = t - STATE.startT;
+        const punch = { ...hit, t: sessionT };
+        const isQuality = (punch.confidence || 0) >= CONFIG.QUALITY_THRESHOLD;
+        if (isQuality) STATE.qualityPunches++;
+        STATE.punches.push(punch);
+        flashPunch(punch);
+        playHitSound(isQuality);
+      }
+
+      // Ring-buffered replay
+      if ((STATE.replay.length % CONFIG.REPLAY_SAMPLE_EVERY) === 0) {
+        if (STATE.replay.length >= CONFIG.MAX_REPLAY_FRAMES) STATE.replay.shift();
+        STATE.replay.push({
+          t: t - STATE.startT,
+          k: kps.map(k => ({ x: Math.round(k.x), y: Math.round(k.y), s: +((k.score || 0).toFixed(2)) })),
+        });
+      }
+      // Ring-buffered CSV
+      if (STATE.csv.length >= CONFIG.MAX_CSV_ROWS) STATE.csv.shift();
+      const row = [Math.round(t - STATE.startT)];
+      for (const k of kps) row.push(k.x.toFixed(1), k.y.toFixed(1), (k.score || 0).toFixed(2));
+      STATE.csv.push(row);
+    }
+  } else {
+    drawHitZones();
+  }
+
+  updateHUD();
+  _loopActive = false;
+  if (STATE.running) STATE.loopId = requestAnimationFrame(loop);
+}
+
+/* =====================================================
+   RECORDING CONTROL
+   ===================================================== */
+function startRecording() {
+  STATE.recording = true;
+  STATE.startT = performance.now();
+  STATE.recordingFacingMode = STATE.facingMode;
+  STATE.source = 'live';
+  STATE.punches = [];
+  STATE.replay = [];
+  STATE.csv = [];
+  STATE.peakVel = 0;
+  STATE.qualityPunches = 0;
+  STATE.kpSum = null;
+  STATE.avgKeypoints = null;
+  STATE.roomSnapshot = null;
+  STATE.snapshotTaken = false;
+  STATE.analyzer = new BoxingAnalyzer(STATE.stance);
+  $('recIndicator').style.display = 'inline-flex';
+  $('recIcon').textContent = '■';
+  $('recLabel').textContent = 'STOP';
+  $('recBtn').classList.add('active');
+  $('readyBanner').style.display = 'none';
+  showToast('Round started');
+}
+
+function stopRecording(goToSummary = true) {
+  STATE.recording = false;
+  $('recIndicator').style.display = 'none';
+  $('recIcon').textContent = '●';
+  $('recLabel').textContent = 'REC';
+  $('recBtn').classList.remove('active');
+  if (goToSummary) {
+    cancelAnimationFrame(STATE.loopId);
+    STATE.running = false;
+    setScreen('summary');
+    // Defer populateSummary to next frame so the summary screen has its
+    // layout dimensions, otherwise canvas parent clientWidth = 0
+    // and the graph + heatmap render blank. THIS IS THE GRAPH FIX.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => populateSummary());
+    });
+  }
+}
+
+/* =====================================================
+   SUMMARY
+   ===================================================== */
+function computeDurationMs() {
+  if (STATE.punches.length > 0) {
+    const last = STATE.punches[STATE.punches.length - 1].t;
+    return Math.max(last + 500, 1000);
+  }
+  return Math.max(performance.now() - STATE.startT, 1000);
+}
+
+function populateSummary() {
+  const dur = computeDurationMs();
+  const total = STATE.punches.length;
+  const mins = dur / 60000;
+
+  const now = new Date();
+  $('summaryDate').textContent = now.toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric',
+  }) + ' · ' + now.toLocaleTimeString('en-US', {
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+  $('summaryMeta').textContent = (STATE.source === 'upload' ? 'Uploaded Video' : 'Live Session') +
+    ' · ' + (STATE.stance === 'orthodox' ? 'Orthodox' : 'Southpaw') +
+    (STATE.peakVel > 0 ? ' · Peak ' + STATE.peakVel.toFixed(1) + ' m/s' : '');
+  $('summarySource').textContent = STATE.source === 'upload' ? 'VIDEO' : 'LIVE';
+  $('sTime').textContent = fmtTime(dur);
+  $('sCount').textContent = total;
+  $('sQuality').textContent = STATE.qualityPunches;
+  $('sRate').textContent = mins > 0.05 ? Math.round(total / mins) : 0;
+
+  let jab = 0, cross = 0, hook = 0, upper = 0, other = 0;
+  for (const p of STATE.punches) {
+    if (p.type === 'jab') jab++;
+    else if (p.type === 'cross') cross++;
+    else if (p.type === 'hook') hook++;
+    else if (p.type === 'uppercut') upper++;
+    else other++;
+  }
+  $('bJab').textContent = jab;
+  $('bCross').textContent = cross;
+  $('bHook').textContent = hook;
+  $('bUpper').textContent = upper;
+  $('bOther').textContent = other;
+
+  drawGraph(dur);
+  drawHeatmap();
+
+  // Auto-save to history (only if at least one detected punch)
+  if (total > 0) {
+    autosaveCurrent(dur);
+  }
+}
+
+function autosaveCurrent(dur) {
+  const id = 'workout-' + Date.now();
+  const entry = {
+    id,
+    date: new Date().toISOString(),
+    duration: dur,
+    source: STATE.source,
+    stance: STATE.stance,
+    facing: STATE.recordingFacingMode,
+    videoW: STATE.videoW,
+    videoH: STATE.videoH,
+    peakVel: STATE.peakVel,
+    punches: STATE.punches.map(p => ({ ...p })),
+    zones: STATE.hitZones.map(z => ({ ...z })),
+  };
+  if (Storage.add(entry)) {
+    showToast('Workout saved');
+    refreshHistoryCount();
+  }
+}
+
+function drawGraph(durationMs) {
+  const cv = $('graphCanvas');
+  const card = cv.parentElement;
+  const cssW = card.clientWidth || 360;
+  const cssH = 160;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.style.width = cssW + 'px';
+  cv.style.height = cssH + 'px';
+  cv.width = Math.round(cssW * dpr);
+  cv.height = Math.round(cssH * dpr);
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+  const W = cssW, H = cssH;
+  const PAD_L = 36, PAD_R = 12, PAD_T = 14, PAD_B = 22;
+
+  ctx.fillStyle = '#141414';
+  ctx.fillRect(0, 0, W, H);
+
+  const durSec = Math.max(1, durationMs / 1000);
+  const BIN_S = Math.max(2, Math.ceil(durSec / 30));
+  const numBins = Math.max(1, Math.ceil(durSec / BIN_S));
+  const bins = new Array(numBins).fill(0);
+  for (const p of STATE.punches) {
+    const bi = Math.min(numBins - 1, Math.floor(p.t / 1000 / BIN_S));
+    if (bi >= 0) bins[bi]++;
+  }
+  const maxV = Math.max(1, ...bins);
+
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD_L, PAD_T);
+  ctx.lineTo(PAD_L, H - PAD_B);
+  ctx.lineTo(W - PAD_R, H - PAD_B);
+  ctx.stroke();
+
+  const innerW = W - PAD_L - PAD_R;
+  const innerH = H - PAD_T - PAD_B;
+  const bw = innerW / numBins;
+  for (let i = 0; i < numBins; i++) {
+    const h = (bins[i] / maxV) * innerH;
+    ctx.fillStyle = bins[i] > 0 ? '#dc2626' : '#1c1c1c';
+    ctx.fillRect(PAD_L + i * bw + 1, H - PAD_B - h, Math.max(1, bw - 2), h);
+  }
+
+  ctx.fillStyle = '#8a8680';
+  ctx.font = '500 10px "JetBrains Mono", monospace';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.fillText(String(maxV), 6, PAD_T + 2);
+  ctx.fillText('0', 6, H - PAD_B);
+  ctx.fillText(`per ${BIN_S}s`, PAD_L + 4, PAD_T - 4);
+  ctx.textAlign = 'right';
+  ctx.fillText(fmtTime(durationMs), W - PAD_R, H - PAD_B + 12);
+  ctx.textAlign = 'left';
+  ctx.fillText('0:00', PAD_L, H - PAD_B + 12);
+}
+
+function drawHeatmap() {
+  const cv = $('heatCanvas');
+  const card = cv.parentElement;
+  const cssW = card.clientWidth || 360;
+  // Always use 4:3 aspect for heatmap — matches camera frame
+  const cssH = Math.round(cssW * 0.75);
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.style.width = cssW + 'px';
+  cv.style.height = cssH + 'px';
+  cv.width = Math.round(cssW * dpr);
+  cv.height = Math.round(cssH * dpr);
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+  const W = cssW, H = cssH;
+
+  const mirrorX = (STATE.source === 'live' && STATE.recordingFacingMode === 'user');
+  const xOf = (nx) => (mirrorX ? (1 - nx) : nx) * W;
+
+  // ── Background: room photo if captured, else dark fill ──────────────────
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, W, H);
+  if (STATE.roomSnapshot) {
+    // Draw the actual room photo, darkened so overlays stay readable
+    ctx.globalAlpha = 0.45;
+    ctx.drawImage(STATE.roomSnapshot, 0, 0, W, H);
+    ctx.globalAlpha = 1.0;
+    // Dark vignette to push edges back
+    const vig = ctx.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.85);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // ── Body silhouette (always drawn — gives anatomical reference) ───────────
+  const sk = STATE.avgKeypoints;
+
+  // Reference skeleton in nx/ny (0-1) — typical standing boxer, camera at ~1m
+  const ref = sk || {
+    nose:     { x: 0.50, y: 0.14 },
+    lSho:     { x: 0.39, y: 0.27 },
+    rSho:     { x: 0.61, y: 0.27 },
+    lElb:     { x: 0.32, y: 0.40 },
+    rElb:     { x: 0.68, y: 0.40 },
+    lWri:     { x: 0.28, y: 0.52 },
+    rWri:     { x: 0.72, y: 0.52 },
+    lHip:     { x: 0.41, y: 0.54 },
+    rHip:     { x: 0.59, y: 0.54 },
+    lKne:     { x: 0.40, y: 0.73 },
+    rKne:     { x: 0.60, y: 0.73 },
+    lAnk:     { x: 0.40, y: 0.90 },
+    rAnk:     { x: 0.60, y: 0.90 },
+  };
+
+  // Helper: ref point → canvas px
+  const rx = (k) => xOf(ref[k].x);
+  const ry = (k) => ref[k].y * H;
+
+  // Head
+  const headR = W * 0.065;
+  ctx.strokeStyle = 'rgba(244,241,234,0.10)';
+  ctx.fillStyle = 'rgba(244,241,234,0.04)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(rx('nose'), ry('nose') - headR * 0.3, headR, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+
+  // Torso
+  ctx.fillStyle = 'rgba(244,241,234,0.04)';
+  ctx.strokeStyle = 'rgba(244,241,234,0.10)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(rx('lSho'), ry('lSho'));
+  ctx.lineTo(rx('rSho'), ry('rSho'));
+  ctx.lineTo(rx('rHip'), ry('rHip'));
+  ctx.lineTo(rx('lHip'), ry('lHip'));
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Limb lines
+  const limbs = [
+    ['lSho','lElb'],['lElb','lWri'],
+    ['rSho','rElb'],['rElb','rWri'],
+    ['lHip','lKne'],['lKne','lAnk'],
+    ['rHip','rKne'],['rKne','rAnk'],
+    ['lSho','nose'],['rSho','nose'],
+  ];
+  ctx.strokeStyle = 'rgba(244,241,234,0.12)';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  for (const [a, b] of limbs) {
+    ctx.beginPath();
+    ctx.moveTo(rx(a), ry(a));
+    ctx.lineTo(rx(b), ry(b));
+    ctx.stroke();
+  }
+  ctx.lineCap = 'butt';
+
+  // Zone outlines
+  ctx.strokeStyle = 'rgba(251,191,36,0.55)';
+  ctx.setLineDash([5,5]);
+  ctx.lineWidth = 1.5;
+  for (const z of STATE.hitZones) {
+    ctx.beginPath();
+    if (z.type === 'polygon') {
+      if (z.pts.length < 2) continue;
+      ctx.moveTo(xOf(z.pts[0].x), z.pts[0].y * H);
+      for (let i = 1; i < z.pts.length; i++) ctx.lineTo(xOf(z.pts[i].x), z.pts[i].y * H);
+      ctx.closePath();
+    } else {
+      ctx.arc(xOf(z.cx), z.cy * H, z.r * Math.min(W,H), 0, Math.PI * 2);
+    }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  if (STATE.punches.length === 0) {
+    ctx.fillStyle = 'rgba(244,241,234,0.15)';
+    ctx.font = '11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('No punches recorded', W / 2, H - 14);
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  // ── Heat blobs ────────────────────────────────────────────────────────────
+  ctx.globalCompositeOperation = 'screen';
+  const blobR = Math.max(24, W * 0.08);
+  for (const p of STATE.punches) {
+    const x = xOf(p.nx), y = p.ny * H;
+    const r = blobR * (0.7 + (p.confidence || 0.5) * 0.6);
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+    if (p.side === 'left') {
+      grad.addColorStop(0, 'rgba(220,38,38,0.85)');
+      grad.addColorStop(0.35, 'rgba(220,38,38,0.30)');
+      grad.addColorStop(1, 'rgba(220,38,38,0)');
+    } else {
+      grad.addColorStop(0, 'rgba(251,191,36,0.80)');
+      grad.addColorStop(0.35, 'rgba(251,191,36,0.28)');
+      grad.addColorStop(1, 'rgba(251,191,36,0)');
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // ── Dot per punch ─────────────────────────────────────────────────────────
+  for (const p of STATE.punches) {
+    const x = xOf(p.nx), y = p.ny * H;
+    const isQ = (p.confidence || 0) >= CONFIG.QUALITY_THRESHOLD;
+    ctx.fillStyle = p.side === 'left'
+      ? (isQ ? '#ff6b6b' : '#dc2626')
+      : (isQ ? '#fcd34d' : '#fbbf24');
+    ctx.strokeStyle = '#0a0a0a';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(x, y, isQ ? 4 : 2.5, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+  }
+
+  // ── Labels ────────────────────────────────────────────────────────────────
+  ctx.font = '500 10px "JetBrains Mono", monospace';
+  ctx.fillStyle = 'rgba(244,241,234,0.35)';
+  ctx.fillText('HEAD', xOf(0.5) + W * 0.08, ry('nose') - headR * 1.2);
+  ctx.fillText('BODY', xOf(0.5) + W * 0.08, (ry('lSho') + ry('lHip')) / 2);
+}
+
+/* Capture running average of keypoints during recording for accurate silhouette */
+function updateAvgKeypoints(kps) {
+  if (!kps || kps.length < 13) return;
+  if (!STATE.kpSum) {
+    STATE.kpSum = kps.map(k => ({ x: k.x, y: k.y, n: 1 }));
+  } else {
+    for (let i = 0; i < Math.min(kps.length, STATE.kpSum.length); i++) {
+      if ((kps[i].score || 0) < 0.3) continue;
+      STATE.kpSum[i].x += kps[i].x; STATE.kpSum[i].y += kps[i].y; STATE.kpSum[i].n++;
+    }
+  }
+  // Compute normalised averages into STATE.avgKeypoints
+  const W = STATE.videoW, H = STATE.videoH;
+  const s = STATE.kpSum;
+  const g = (i) => ({ x: s[i].x / s[i].n / W, y: s[i].y / s[i].n / H });
+  STATE.avgKeypoints = {
+    nose: g(0), lSho: g(5), rSho: g(6),
+    lElb: g(7), rElb: g(8), lWri: g(9), rWri: g(10),
+    lHip: g(11), rHip: g(12),
+    lKne: g(13), rKne: g(14), lAnk: g(15), rAnk: g(16),
+  };
+}
+
+/* =====================================================
+   CSV EXPORT
+   ===================================================== */
+function exportCSV() {
+  let csv = 'ACTONBOX — Session ' + new Date().toISOString() + '\n';
+  csv += '# Source: ' + STATE.source + '  Stance: ' + STATE.stance +
+         '  PeakVel(m/s): ' + STATE.peakVel.toFixed(2) + '\n';
+  csv += '# Coords in original video frame px. Display mirror does not affect stored data.\n';
+  csv += '\n## Keypoints per frame\n';
+  const head = ['t_ms'];
+  for (const n of KP_NAMES) head.push(`${n}_x`, `${n}_y`, `${n}_s`);
+  csv += head.join(',') + '\n';
+  for (const row of STATE.csv) csv += row.join(',') + '\n';
+
+  csv += '\n## Strikes (classified)\n';
+  csv += 't_ms,side,type,confidence,nx,ny,vel_mps,elbow_angle\n';
+  for (const p of STATE.punches) {
+    csv += [
+      Math.round(p.t), p.side, p.type, p.confidence,
+      p.nx.toFixed(3), p.ny.toFixed(3), p.vel, p.elbowAngle,
+    ].join(',') + '\n';
+  }
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  a.download = `actonbox-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('CSV downloaded');
+}
+
+/* =====================================================
+   REPLAY
+   ===================================================== */
+const replayCv = $('replayCanvas');
+const replayCtx = replayCv.getContext('2d');
+const replayState = { playing: false, idx: 0, lastT: 0, rafId: 0 };
+
+function openReplay() {
+  if (STATE.replay.length < 2) { showToast('Not enough data to replay'); return; }
+  const wrap = replayCv.parentElement;
+  const wrapW = wrap.clientWidth, wrapH = wrap.clientHeight;
+  const aspect = STATE.videoW / STATE.videoH;
+  let cssW = wrapW, cssH = wrapW / aspect;
+  if (cssH > wrapH) { cssH = wrapH; cssW = wrapH * aspect; }
+  replayCv.style.width = cssW + 'px';
+  replayCv.style.height = cssH + 'px';
+  replayCv.style.transform = (STATE.source === 'live' && STATE.recordingFacingMode === 'user')
+    ? 'scaleX(-1)' : '';
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  replayCv.width = Math.round(cssW * dpr);
+  replayCv.height = Math.round(cssH * dpr);
+  replayCtx.setTransform(1, 0, 0, 1, 0, 0);
+  replayCtx.scale(dpr * (cssW / STATE.videoW), dpr * (cssH / STATE.videoH));
+
+  replayState.idx = 0;
+  replayState.playing = true;
+  replayState.lastT = performance.now();
+  $('replayPlayIcon').textContent = '❚❚';
+  setScreen('replay');
+  cancelAnimationFrame(replayState.rafId);
+  drawReplayFrame();
+  replayState.rafId = requestAnimationFrame(replayTick);
+}
+
+function drawReplayFrame() {
+  const i = Math.min(replayState.idx, STATE.replay.length - 1);
+  const frame = STATE.replay[i];
+  if (!frame) return;
+
+  const W = STATE.videoW, H = STATE.videoH;
+  replayCtx.clearRect(0, 0, W, H);
+
+  // Background: room snapshot if available, else dark
+  if (STATE.roomSnapshot) {
+    replayCtx.globalAlpha = 0.55;
+    replayCtx.drawImage(STATE.roomSnapshot, 0, 0, W, H);
+    replayCtx.globalAlpha = 1;
+    // Dark overlay so skeleton is visible
+    replayCtx.fillStyle = 'rgba(0,0,0,0.40)';
+    replayCtx.fillRect(0, 0, W, H);
+  } else {
+    replayCtx.fillStyle = '#0a0a0a';
+    replayCtx.fillRect(0, 0, W, H);
+    replayCtx.strokeStyle = 'rgba(244,241,234,0.04)';
+    replayCtx.lineWidth = 1;
+    for (let g = 1; g < 10; g++) {
+      replayCtx.beginPath();
+      replayCtx.moveTo(W * g / 10, 0); replayCtx.lineTo(W * g / 10, H);
+      replayCtx.moveTo(0, H * g / 10); replayCtx.lineTo(W, H * g / 10);
+      replayCtx.stroke();
+    }
+  }
+
+  // Punch flash markers — draw any punches within the last 400ms of replay time
+  const rMirrorFlash = (STATE.source === 'live' && STATE.recordingFacingMode === 'user');
+  const rxFlash = nx => (rMirrorFlash ? (1 - nx) : nx) * W;
+  for (const p of STATE.punches) {
+    const age = frame.t - p.t;
+    if (age < 0 || age > 400) continue;
+    const alpha = 1 - age / 400;
+    const x = rxFlash(p.nx), y = p.ny * H;
+    const r = 18 * (1 - age / 800);
+    replayCtx.strokeStyle = p.side === 'left'
+      ? `rgba(220,38,38,${alpha * 0.9})` : `rgba(251,191,36,${alpha * 0.9})`;
+    replayCtx.lineWidth = 2;
+    replayCtx.beginPath();
+    replayCtx.arc(x, y, r, 0, Math.PI * 2);
+    replayCtx.stroke();
+    replayCtx.fillStyle = p.side === 'left'
+      ? `rgba(220,38,38,${alpha * 0.5})` : `rgba(251,191,36,${alpha * 0.5})`;
+    replayCtx.fill();
+    // Type label
+    if (age < 200) {
+      replayCtx.fillStyle = p.side === 'left'
+        ? `rgba(220,38,38,${alpha})` : `rgba(251,191,36,${alpha})`;
+      replayCtx.font = '500 11px "JetBrains Mono",monospace';
+      replayCtx.textAlign = 'center';
+      replayCtx.fillText(p.type.toUpperCase(), x, y - r - 6);
+      replayCtx.textAlign = 'left';
+    }
+  }
+  // Wrist trails
+  const trailStart = Math.max(0, i - 25);
+  for (const side of ['left', 'right']) {
+    const idx = side === 'left' ? KP.L_WRIST : KP.R_WRIST;
+    replayCtx.strokeStyle = side === 'left' ? 'rgba(220,38,38,0.6)' : 'rgba(251,191,36,0.6)';
+    replayCtx.lineWidth = 2;
+    replayCtx.beginPath();
+    let started = false;
+    for (let f = trailStart; f <= i; f++) {
+      const fk = STATE.replay[f].k[idx];
+      if (!fk || fk.s < 0.2) { started = false; continue; }
+      if (!started) { replayCtx.moveTo(fk.x, fk.y); started = true; }
+      else replayCtx.lineTo(fk.x, fk.y);
+    }
+    replayCtx.stroke();
+  }
+  drawReplaySkeleton(frame.k);
+  // Multi-zone outlines on replay
+  if (STATE.hitZones.length > 0) {
+    // replayCv has CSS scaleX(-1) on the element itself for live recordings.
+    // Skeleton uses raw keypoint coords (CSS flip puts them in the right place).
+    // Zones are in data coords (nx), so we must pre-flip: draw at (1-nx)*W so
+    // the CSS flip brings them back to nx*W visually.
+    const rMirror = (STATE.source === 'live' && STATE.recordingFacingMode === 'user');
+    const rxOf = nx => (rMirror ? (1 - nx) : nx) * STATE.videoW;
+    replayCtx.strokeStyle = 'rgba(251,191,36,0.5)';
+    replayCtx.setLineDash([8, 6]);
+    replayCtx.lineWidth = 2;
+    for (const z of STATE.hitZones) {
+      replayCtx.beginPath();
+      if (z.type === 'polygon') {
+        if (z.pts.length < 2) continue;
+        replayCtx.moveTo(rxOf(z.pts[0].x), z.pts[0].y * STATE.videoH);
+        for (let i = 1; i < z.pts.length; i++)
+          replayCtx.lineTo(rxOf(z.pts[i].x), z.pts[i].y * STATE.videoH);
+        replayCtx.closePath();
+      } else {
+        replayCtx.arc(rxOf(z.cx), z.cy * STATE.videoH,
+          z.r * Math.min(STATE.videoW, STATE.videoH), 0, Math.PI * 2);
+      }
+      replayCtx.stroke();
+    }
+    replayCtx.setLineDash([]);
+  }
+  const totalT = STATE.replay[STATE.replay.length - 1].t;
+  $('replayScrub').value = totalT > 0 ? (frame.t / totalT) * 100 : 0;
+  $('replayTime').textContent = fmtTime(frame.t) + ' / ' + fmtTime(totalT);
+}
+
+function drawReplaySkeleton(kps) {
+  replayCtx.lineWidth = 3;
+  for (const [a, b] of SKELETON) {
+    const ka = kps[a], kb = kps[b];
+    if (!ka || !kb || ka.s < 0.25 || kb.s < 0.25) continue;
+    const isArm = (a === 5 && b === 7) || (a === 7 && b === 9) ||
+                  (a === 6 && b === 8) || (a === 8 && b === 10);
+    replayCtx.strokeStyle = isArm ? '#dc2626' : '#f4f1ea';
+    replayCtx.beginPath();
+    replayCtx.moveTo(ka.x, ka.y);
+    replayCtx.lineTo(kb.x, kb.y);
+    replayCtx.stroke();
+  }
+  for (let i = 0; i < kps.length; i++) {
+    const k = kps[i];
+    if (!k || k.s < 0.25) continue;
+    const r = (i === KP.L_WRIST || i === KP.R_WRIST) ? 6 : 3;
+    replayCtx.fillStyle = (i === KP.L_WRIST) ? '#dc2626'
+                       : (i === KP.R_WRIST) ? '#fbbf24' : '#f4f1ea';
+    replayCtx.beginPath();
+    replayCtx.arc(k.x, k.y, r, 0, Math.PI * 2);
+    replayCtx.fill();
+  }
+}
+
+function replayTick(t) {
+  if (!replayState.playing) return;
+  const dt = t - replayState.lastT;
+  replayState.lastT = t;
+  if (replayState.idx >= STATE.replay.length - 1) {
+    replayState.idx = STATE.replay.length - 1;
+    replayState.playing = false;
+    $('replayPlayIcon').textContent = '▶';
+    drawReplayFrame();
+    return;
+  }
+  let targetT = STATE.replay[replayState.idx].t + dt;
+  while (replayState.idx < STATE.replay.length - 1 &&
+         STATE.replay[replayState.idx + 1].t <= targetT) {
+    replayState.idx++;
+  }
+  drawReplayFrame();
+  replayState.rafId = requestAnimationFrame(replayTick);
+}
+
+/* =====================================================
+   MULTI-ZONE PICKER
+   Click empty space → adds zone. Click existing zone → removes it.
+   ===================================================== */
+function startZonePick() {
+  STATE.zoneSetting = true;
+  $('zoneHint').style.display = 'block';
+  $('zoneBtn').classList.add('active');
+  $('zoneBtnLabel').textContent = 'Done';
+}
+function endZonePick() {
+  STATE.zoneSetting = false;
+  $('zoneHint').style.display = 'none';
+  $('zoneBtn').classList.remove('active');
+  $('zoneBtnLabel').textContent = 'Zones';
+}
+
+videoFrame.addEventListener('click', (e) => {
+  if (!STATE.zoneSetting) return;
+  const rect = videoFrame.getBoundingClientRect();
+  let nx = (e.clientX - rect.left) / rect.width;
+  const ny = (e.clientY - rect.top) / rect.height;
+  // Un-mirror to data coord space
+  if (STATE.facingMode === 'user' && STATE.source === 'live') nx = 1 - nx;
+
+  // Check if click hits an existing circle zone — if so, remove it
+  for (let i = 0; i < STATE.hitZones.length; i++) {
+    const z = STATE.hitZones[i];
+    if (z.type === 'polygon') {
+      if (pointInPolygon(nx, ny, z.pts)) {
+        STATE.hitZones.splice(i, 1);
+        showToast('Draw zone removed (' + STATE.hitZones.length + ')');
+        return;
+      }
+    } else {
+      if (Math.hypot(nx - z.cx, ny - z.cy) < z.r) {
+        STATE.hitZones.splice(i, 1);
+        showToast('Zone removed (' + STATE.hitZones.length + ')');
+        return;
+      }
+    }
+  }
+  // Else add new circle zone
+  STATE.hitZones.push({ cx: nx, cy: ny, r: 0.10 });
+  showToast('Zone added (' + STATE.hitZones.length + ')');
+});
+
+/* =====================================================
+   VIDEO UPLOAD ANALYSIS
+   ===================================================== */
+async function analyzeUploadedVideo(file) {
+  $('uploadFilename').textContent = file.name;
+  $('progressFill').style.right = '100%';
+  $('progressPct').textContent = '0%';
+  setScreen('upload');
+
+  await ensureDetector();
+
+  // Build a video element pointed at the file
+  const url = URL.createObjectURL(file);
+  const upVideo = document.createElement('video');
+  upVideo.src = url;
+  upVideo.muted = true;
+  upVideo.playsInline = true;
+  upVideo.preload = 'auto';
+  await new Promise((resolve, reject) => {
+    upVideo.onloadedmetadata = resolve;
+    upVideo.onerror = () => reject(new Error('Could not load video'));
+  });
+
+  STATE.uploadVideo = upVideo;
+  STATE.source = 'upload';
+  STATE.videoW = upVideo.videoWidth || 640;
+  STATE.videoH = upVideo.videoHeight || 480;
+  STATE.startT = 0;  // session time is video time
+  STATE.recordingFacingMode = 'environment'; // don't mirror uploaded video
+  STATE.punches = [];
+  STATE.replay = [];
+  STATE.csv = [];
+  STATE.peakVel = 0;
+  STATE.qualityPunches = 0;
+  STATE.kpSum = null;
+  STATE.avgKeypoints = null;
+  STATE.roomSnapshot = null;
+  STATE.snapshotTaken = false;
+  STATE.analyzer = new BoxingAnalyzer(STATE.stance);
+  // Don't apply zones from live session to upload — clear them
+  // (user could add zones during upload but we don't have UI for that yet)
+
+  const totalDur = upVideo.duration * 1000;
+
+  // Process frame-by-frame. We seek using requestVideoFrameCallback if
+  // available; otherwise fall back to playing at 1x.
+  const useVFC = 'requestVideoFrameCallback' in upVideo;
+
+  return new Promise(async (resolve) => {
+    let processed = 0;
+    const startWall = performance.now();
+
+    const onFrame = async (timeMs) => {
+      try {
+        const poses = await STATE.detector.estimatePoses(upVideo, { flipHorizontal: false });
+        if (poses.length > 0 && poses[0].keypoints) {
+          const kps = poses[0].keypoints;
+          const result = STATE.analyzer.analyzeBoxingFrame(kps, timeMs, STATE.videoW, STATE.videoH);
+          if (result.peakVelMps > STATE.peakVel) STATE.peakVel = result.peakVelMps;
+          for (const hit of result.punches) {
+            if (!passesZoneFilter(hit.nx, hit.ny)) continue;
+            STATE.punches.push({ ...hit, t: timeMs });
+          }
+          // Replay buffer
+          if ((STATE.replay.length % CONFIG.REPLAY_SAMPLE_EVERY) === 0) {
+            if (STATE.replay.length >= CONFIG.MAX_REPLAY_FRAMES) STATE.replay.shift();
+            STATE.replay.push({
+              t: timeMs,
+              k: kps.map(k => ({ x: Math.round(k.x), y: Math.round(k.y), s: +((k.score || 0).toFixed(2)) })),
+            });
+          }
+          // CSV buffer
+          if (STATE.csv.length >= CONFIG.MAX_CSV_ROWS) STATE.csv.shift();
+          const row = [Math.round(timeMs)];
+          for (const k of kps) row.push(k.x.toFixed(1), k.y.toFixed(1), (k.score || 0).toFixed(2));
+          STATE.csv.push(row);
+        }
+      } catch (e) {
+        console.error('Frame analysis error:', e);
+      }
+      processed++;
+      const pct = Math.min(100, Math.floor((timeMs / totalDur) * 100));
+      $('progressFill').style.right = (100 - pct) + '%';
+      $('progressPct').textContent = pct + '%';
+    };
+
+    if (useVFC) {
+      // requestVideoFrameCallback path: play the video, get notified per frame
+      upVideo.playbackRate = 1.0;
+      const onVFC = async (now, metadata) => {
+        await onFrame(metadata.mediaTime * 1000);
+        if (upVideo.ended || upVideo.currentTime >= upVideo.duration - 0.05) {
+          finish();
+        } else {
+          upVideo.requestVideoFrameCallback(onVFC);
+        }
+      };
+      upVideo.requestVideoFrameCallback(onVFC);
+      try { await upVideo.play(); } catch (e) { finish(); }
+    } else {
+      // Fallback: seek at 100ms intervals (slower but works everywhere)
+      const STEP_MS = 100;
+      let cur = 0;
+      const seekStep = () => new Promise((res, rej) => {
+        upVideo.onseeked = () => res();
+        upVideo.onerror = () => rej();
+        upVideo.currentTime = cur / 1000;
+      });
+      while (cur < totalDur) {
+        try { await seekStep(); } catch (e) { break; }
+        await onFrame(cur);
+        cur += STEP_MS;
+      }
+      finish();
+    }
+
+    async function finish() {
+      URL.revokeObjectURL(url);
+      STATE.uploadVideo = null;
+      const wallElapsed = performance.now() - startWall;
+      console.log('Upload analysis complete:', processed, 'frames in', wallElapsed.toFixed(0), 'ms');
+      setScreen('summary');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => populateSummary());
+      });
+      resolve();
+    }
+  });
+}
+
+/* =====================================================
+   HISTORY UI
+   ===================================================== */
+function renderHistory() {
+  const body = $('historyBody');
+  const all = Storage.loadAll();
+  if (all.length === 0) {
+    body.innerHTML = '<div class="history-empty">No saved workouts yet.<br><br>Complete a round to save it here.</div>';
+    return;
+  }
+  let html = '';
+  for (const e of all) {
+    const d = new Date(e.date);
+    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const dur = fmtTime(e.duration);
+    const src = (e.source === 'upload' ? 'Video' : 'Live') +
+                ' · ' + (e.stance || 'orthodox') +
+                ' · ' + dur;
+    html += `
+      <div class="history-item" data-id="${e.id}">
+        <div>
+          <div class="date">${dateStr}</div>
+          <div class="time">${timeStr}</div>
+        </div>
+        <div>
+          <div class="count">${e.punches.length}</div>
+          <div class="count-label">strikes</div>
+        </div>
+        <div class="source-tag">${src}</div>
+      </div>`;
+  }
+  body.innerHTML = html;
+  body.querySelectorAll('.history-item').forEach(el => {
+    el.addEventListener('click', () => loadHistoryEntry(el.dataset.id));
+  });
+}
+
+function loadHistoryEntry(id) {
+  const all = Storage.loadAll();
+  const e = all.find(x => x.id === id);
+  if (!e) return;
+  // Hydrate STATE for summary display
+  STATE.source = e.source;
+  STATE.stance = e.stance || 'orthodox';
+  STATE.recordingFacingMode = e.facing || 'environment';
+  STATE.videoW = e.videoW || 640;
+  STATE.videoH = e.videoH || 480;
+  STATE.peakVel = e.peakVel || 0;
+  STATE.punches = e.punches.slice();
+  STATE.hitZones = (e.zones || []).slice();
+  STATE.startT = performance.now() - e.duration; // so computeDurationMs works
+
+  setScreen('summary');
+  requestAnimationFrame(() => requestAnimationFrame(() => populateSummary()));
+}
+
+function refreshHistoryCount() {
+  const n = Storage.loadAll().length;
+  $('historyCountSub').textContent = n + ' Saved';
+}
+
+/* =====================================================
+   EVENT WIRING
+   ===================================================== */
+function resetSplashBtn() {
+  const btn = $('startLiveBtn');
+  btn.disabled = false;
+  btn.innerHTML = 'Live Round<span class="sub">Camera · Real-Time</span>';
+  loader.textContent = '';
+}
+
+async function startLive() {
+  $('startLiveBtn').disabled = true;
+  $('startLiveBtn').textContent = 'Loading…';
+  try {
+    await ensureDetector();
+    loader.textContent = 'Requesting camera…';
+    await setupCamera(STATE.facingMode);
+    loader.textContent = '';
+    STATE.source = 'live';
+    setScreen('live');
+    $('readyBanner').style.display = 'block';
+    STATE.running = true;
+    STATE.fpsT = performance.now();
+    STATE.loopId = requestAnimationFrame(loop);
+  } catch (e) {
+    console.error(e);
+    loader.textContent = 'Error: ' + (e.message || 'failed to start');
+    $('startLiveBtn').disabled = false;
+    $('startLiveBtn').innerHTML = 'Live Round<span class="sub">Retry</span>';
+  }
+}
+
+$('startLiveBtn').addEventListener('click', startLive);
+$('startUploadBtn').addEventListener('click', () => $('fileInput').click());
+$('fileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = ''; // allow re-selecting same file later
+  try {
+    await analyzeUploadedVideo(file);
+  } catch (err) {
+    console.error(err);
+    showToast('Analysis failed: ' + err.message);
+    resetSplashBtn();
+    setScreen('splash');
+  }
+});
+$('historyBtn').addEventListener('click', () => { renderHistory(); setScreen('history'); });
+$('historyBackBtn').addEventListener('click', () => setScreen('splash'));
+$('aboutBtn').addEventListener('click', () => $('aboutModal').classList.add('active'));
+$('aboutCloseBtn').addEventListener('click', () => $('aboutModal').classList.remove('active'));
+$('stanceToggleOrtho').addEventListener('click', () => {
+  STATE.stance = 'orthodox';
+  Storage.saveStance('orthodox');
+  $('stanceToggleOrtho').classList.add('active');
+  $('stanceToggleSouth').classList.remove('active');
+  if (STATE.analyzer) STATE.analyzer.setStance('orthodox');
+});
+$('stanceToggleSouth').addEventListener('click', () => {
+  STATE.stance = 'southpaw';
+  Storage.saveStance('southpaw');
+  $('stanceToggleSouth').classList.add('active');
+  $('stanceToggleOrtho').classList.remove('active');
+  if (STATE.analyzer) STATE.analyzer.setStance('southpaw');
+});
+$('clearAllBtn').addEventListener('click', () => {
+  if (confirm('Delete ALL saved workouts? This cannot be undone.')) {
+    Storage.clear();
+    refreshHistoryCount();
+    showToast('All workouts cleared');
+  }
+});
+$('recBtn').addEventListener('click', () => {
+  if (!STATE.running) return;
+  if (STATE.recording) stopRecording(true);
+  else startRecording();
+});
+$('zoneBtn').addEventListener('click', () => {
+  if (STATE.zoneSetting) endZonePick();
+  else startZonePick();
+});
+$('drawBtn').addEventListener('click', () => {
+  if (STATE.drawSetting) endDrawZone();
+  else { endZonePick(); startDrawZone(); }
+});
+
+/* =====================================================
+   DRAW ZONE — freehand polygon
+   ===================================================== */
+function startDrawZone() {
+  STATE.drawSetting = true;
+  STATE.drawPoints = [];
+  $('drawBtn').classList.add('active');
+  $('drawBtnLabel').textContent = 'Done';
+  $('zoneHintText').textContent = 'Draw zone outline';
+  $('zoneHintSub').textContent = 'Drag to draw · Release to close shape';
+  $('zoneHint').style.display = 'block';
+}
+function endDrawZone() {
+  STATE.drawSetting = false;
+  $('drawBtn').classList.remove('active');
+  $('drawBtnLabel').textContent = 'Draw';
+  $('zoneHint').style.display = 'none';
+  STATE.drawPoints = [];
+}
+function commitDrawZone() {
+  const pts = STATE.drawPoints;
+  if (pts.length < 3) { endDrawZone(); return; }
+  // Simplify: keep every Nth point to reduce polygon to ~20 vertices max
+  const step = Math.max(1, Math.floor(pts.length / 20));
+  const simplified = pts.filter((_, i) => i % step === 0);
+  if (simplified.length < 3) { endDrawZone(); return; }
+  STATE.hitZones.push({ type: 'polygon', pts: simplified });
+  showToast('Draw zone added (' + STATE.hitZones.length + ')');
+  endDrawZone();
+}
+
+// Unified pointer handler for draw mode
+function drawPointerStart(e) {
+  if (!STATE.drawSetting) return;
+  e.preventDefault();
+  STATE.drawPoints = [];
+  const pt = getEventNormalized(e);
+  if (pt) STATE.drawPoints.push(pt);
+}
+function drawPointerMove(e) {
+  if (!STATE.drawSetting || STATE.drawPoints.length === 0) return;
+  e.preventDefault();
+  const pt = getEventNormalized(e);
+  if (!pt) return;
+  const last = STATE.drawPoints[STATE.drawPoints.length - 1];
+  // Only add point if moved enough (>1% of frame width) to avoid jitter
+  if (Math.hypot(pt.x - last.x, pt.y - last.y) > 0.01) STATE.drawPoints.push(pt);
+}
+function drawPointerEnd(e) {
+  if (!STATE.drawSetting) return;
+  e.preventDefault();
+  commitDrawZone();
+}
+function getEventNormalized(e) {
+  const rect = videoFrame.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e.changedTouches ? e.changedTouches[0] : e;
+  if (!src) return null;
+  let nx = (src.clientX - rect.left) / rect.width;
+  const ny = (src.clientY - rect.top) / rect.height;
+  if (STATE.facingMode === 'user' && STATE.source === 'live') nx = 1 - nx;
+  return { x: Math.max(0, Math.min(1, nx)), y: Math.max(0, Math.min(1, ny)) };
+}
+
+videoFrame.addEventListener('mousedown',  drawPointerStart, { passive: false });
+videoFrame.addEventListener('mousemove',  drawPointerMove,  { passive: false });
+videoFrame.addEventListener('mouseup',    drawPointerEnd,   { passive: false });
+videoFrame.addEventListener('touchstart', drawPointerStart, { passive: false });
+videoFrame.addEventListener('touchmove',  drawPointerMove,  { passive: false });
+videoFrame.addEventListener('touchend',   drawPointerEnd,   { passive: false });
+
+$('stanceBtn').addEventListener('click', () => {
+  STATE.stance = STATE.stance === 'orthodox' ? 'southpaw' : 'orthodox';
+  Storage.saveStance(STATE.stance);
+  if (STATE.analyzer) STATE.analyzer.setStance(STATE.stance);
+  // Update toggle in About too
+  $('stanceToggleOrtho').classList.toggle('active', STATE.stance === 'orthodox');
+  $('stanceToggleSouth').classList.toggle('active', STATE.stance === 'southpaw');
+  showToast('Stance: ' + STATE.stance);
+});
+$('flipBtn').addEventListener('click', async () => {
+  if (STATE.recording) { showToast('Stop the round first'); return; }
+  STATE.facingMode = STATE.facingMode === 'user' ? 'environment' : 'user';
+  try {
+    await setupCamera(STATE.facingMode);
+    showToast(STATE.facingMode === 'user' ? 'Front camera' : 'Rear camera');
+  } catch (e) {
+    showToast('Camera flip failed');
+    STATE.facingMode = STATE.facingMode === 'user' ? 'environment' : 'user';
+    await setupCamera(STATE.facingMode);
+  }
+});
+$('endBtn').addEventListener('click', () => {
+  if (STATE.recording) stopRecording(true);
+  else {
+    cancelAnimationFrame(STATE.loopId);
+    STATE.running = false;
+    if (STATE.stream) { STATE.stream.getTracks().forEach(t => t.stop()); STATE.stream = null; }
+    resetSplashBtn();
+    setScreen('splash');
+    refreshHistoryCount();
+  }
+});
+$('csvBtn').addEventListener('click', exportCSV);
+$('replayBtn').addEventListener('click', openReplay);
+$('discardBtn').addEventListener('click', () => {
+  if (!confirm('Discard this workout? It will be removed from history.')) return;
+  // Find most recent matching entry (the autosaved one) and delete it
+  const all = Storage.loadAll();
+  if (all.length > 0) {
+    Storage.delete(all[0].id);
+    refreshHistoryCount();
+  }
+  resetSplashBtn();
+  setScreen('splash');
+});
+$('newBtn').addEventListener('click', async () => {
+  // Done — back to splash
+  STATE.punches = [];
+  STATE.replay = [];
+  STATE.csv = [];
+  refreshHistoryCount();
+  resetSplashBtn();
+  setScreen('splash');
+});
+/* =====================================================
+   DOWNLOAD REPLAY AS VIDEO
+   ===================================================== */
+async function downloadReplayVideo() {
+  if (STATE.replay.length < 2) { showToast('No replay data'); return; }
+  if (!window.MediaRecorder) { showToast('MediaRecorder not supported on this browser'); return; }
+
+  const btn = $('downloadVideoBtn');
+  btn.textContent = 'Recording…';
+  btn.disabled = true;
+
+  // Pick a supported MIME type
+  const mimeTypes = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'];
+  const mimeType = mimeTypes.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
+
+  // Record the existing replayCv at 30fps
+  let stream;
+  try {
+    stream = replayCv.captureStream(30);
+  } catch(e) {
+    showToast('Canvas capture not supported');
+    btn.textContent = '⬇ Video';
+    btn.disabled = false;
+    return;
+  }
+
+  const chunks = [];
+  const mr = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 2_500_000 });
+  mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+  mr.onstop = () => {
+    const blob = new Blob(chunks, { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+    a.download = 'actonbox-replay-' + new Date().toISOString().slice(0,16).replace('T','-') + '.' + ext;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    btn.textContent = '⬇ Video';
+    btn.disabled = false;
+    showToast('Video downloaded');
+  };
+
+  // Play the replay from the start while recording
+  replayState.idx = 0;
+  replayState.playing = false;
+  cancelAnimationFrame(replayState.rafId);
+  drawReplayFrame();
+
+  mr.start(100); // collect in 100ms chunks
+
+  // Advance frames at recorded speed then stop
+  const totalT = STATE.replay[STATE.replay.length - 1].t;
+  let prevIdx = 0;
+  const advanceFrame = () => {
+    if (!mr || mr.state !== 'recording') return;
+    // Find next frame based on real time since recording started
+    const elapsed = Date.now() - recordStart;
+    let best = 0;
+    for (let j = 0; j < STATE.replay.length; j++) {
+      if (STATE.replay[j].t <= elapsed) best = j;
+    }
+    replayState.idx = best;
+    drawReplayFrame();
+    if (elapsed < totalT + 200) {
+      replayState.rafId = requestAnimationFrame(advanceFrame);
+    } else {
+      mr.stop();
+      stream.getTracks().forEach(t => t.stop());
+      // Restore play button
+      $('replayPlayIcon').textContent = '▶';
+    }
+  };
+  const recordStart = Date.now();
+  replayState.rafId = requestAnimationFrame(advanceFrame);
+}
+
+$('replayBackBtn').addEventListener('click', () => {
+  replayState.playing = false;
+  cancelAnimationFrame(replayState.rafId);
+  setScreen('summary');
+});
+$('downloadVideoBtn').addEventListener('click', downloadReplayVideo);
+$('replayPlay').addEventListener('click', () => {
+  if (replayState.idx >= STATE.replay.length - 1) replayState.idx = 0;
+  replayState.playing = !replayState.playing;
+  $('replayPlayIcon').textContent = replayState.playing ? '❚❚' : '▶';
+  if (replayState.playing) {
+    replayState.lastT = performance.now();
+    replayState.rafId = requestAnimationFrame(replayTick);
+  }
+});
+$('replayScrub').addEventListener('input', (e) => {
+  if (STATE.replay.length === 0) return;
+  const totalT = STATE.replay[STATE.replay.length - 1].t;
+  const targetT = (parseFloat(e.target.value) / 100) * totalT;
+  let i = 0;
+  while (i < STATE.replay.length - 1 && STATE.replay[i + 1].t <= targetT) i++;
+  replayState.idx = i;
+  drawReplayFrame();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && STATE.running) {
+    cancelAnimationFrame(STATE.loopId);
+  } else if (!document.hidden && STATE.running) {
+    STATE.fpsT = performance.now();
+    STATE.fpsCount = 0;
+    STATE.loopId = requestAnimationFrame(loop);
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (STATE.running) sizeOverlay();
+});
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+
+// Init
+(function init() {
+  STATE.stance = Storage.loadStance();
+  if (STATE.stance === 'southpaw') {
+    $('stanceToggleSouth').classList.add('active');
+    $('stanceToggleOrtho').classList.remove('active');
+  }
+  refreshHistoryCount();
+})();
+</script>
+</body>
+</html>
