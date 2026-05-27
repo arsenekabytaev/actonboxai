@@ -1,0 +1,2652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>ACTONBOX — Boxing Motion Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #0a0a0a;
+  --bg-2: #141414;
+  --bg-3: #1c1c1c;
+  --line: #2a2a2a;
+  --ink: #f4f1ea;
+  --ink-dim: #8a8680;
+  --ink-faint: #555048;
+  --red: #dc2626;
+  --red-dim: #7a1818;
+  --bone: #f4f1ea;
+  --gold: #fbbf24;
+  --green: #4ade80;
+  --display: "Anton", "Impact", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  overflow: hidden;
+  height: 100vh; height: 100dvh;
+  width: 100vw;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.screen {
+  position: fixed;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.screen.active { display: flex; }
+
+/* ---------- Splash ---------- */
+#splash {
+  background: radial-gradient(ellipse at 50% 30%, #1a0808 0%, #0a0a0a 60%);
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 100;
+  padding: 20px;
+  overflow-y: auto;
+}
+#splash .logo {
+  font-family: var(--display);
+  font-size: clamp(54px, 18vw, 140px);
+  letter-spacing: -0.02em;
+  line-height: 0.85;
+  color: var(--bone);
+  margin: 0;
+  position: relative;
+}
+#splash .logo::after {
+  content: "";
+  position: absolute;
+  right: -14px; top: 6px;
+  width: 12px; height: 12px;
+  background: var(--red);
+  border-radius: 50%;
+}
+#splash .tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--ink-dim);
+  margin-top: 10px;
+  text-transform: uppercase;
+}
+#splash .splash-actions {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  width: 260px;
+}
+#splash .splash-actions button {
+  background: var(--bg);
+  color: var(--bone);
+  border: none;
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  padding: 16px 20px;
+  cursor: pointer;
+  text-transform: uppercase;
+  text-align: center;
+}
+#splash .splash-actions button.primary {
+  background: var(--red);
+}
+#splash .splash-actions button:active { opacity: 0.7; }
+#splash .splash-actions button .sub {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  margin-top: 4px;
+  font-weight: 400;
+}
+#splash .splash-actions button.primary .sub { color: rgba(255,255,255,0.7); }
+#splash .note {
+  max-width: 320px;
+  margin: 24px 16px 0;
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--ink-faint);
+}
+#splash .note b { color: var(--ink-dim); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+#splash .loader {
+  margin-top: 16px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  min-height: 14px;
+}
+#splash .footer-link {
+  margin-top: 18px;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+#splash .footer-link:hover { color: var(--ink-dim); }
+
+/* ---------- Top bar ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  flex-shrink: 0;
+}
+.topbar .brand {
+  font-family: var(--display);
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  color: var(--bone);
+  margin-right: auto;
+}
+.topbar .brand .dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  background: var(--red);
+  border-radius: 50%;
+  margin-left: 4px;
+  vertical-align: 2px;
+}
+.topbar .stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.topbar .stat b {
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--bone);
+  font-size: 11px;
+}
+.topbar button {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 5px 10px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+}
+.topbar button:active { background: var(--bg-2); }
+.rec-dot {
+  width: 8px; height: 8px;
+  background: var(--red);
+  border-radius: 50%;
+  display: inline-block;
+  animation: blink 1s infinite;
+}
+@keyframes blink { 50% { opacity: 0.25; } }
+
+/* ---------- Live ---------- */
+#live-screen { background: #000; }
+.video-wrap {
+  flex: 1;
+  position: relative;
+  background: #000;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.video-frame {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 4 / 3;
+  width: 100%;
+}
+.video-frame.mirror { transform: scaleX(-1); }
+#video, #overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+#video { object-fit: fill; background: #000; }
+
+.hud {
+  position: absolute;
+  pointer-events: none;
+  font-family: var(--mono);
+}
+.hud-tl {
+  top: 10px; left: 10px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+.hud-tl .row { margin-top: 4px; }
+.hud-tr {
+  top: 10px; right: 10px;
+  text-align: right;
+}
+.hud-tr .punches {
+  font-family: var(--display);
+  font-size: 58px;
+  line-height: 0.9;
+  color: var(--bone);
+  letter-spacing: -0.03em;
+}
+.hud-tr .label {
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin-top: -2px;
+}
+.hud-bl {
+  bottom: 12px; left: 12px;
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.hud-bl .row { margin-top: 4px; }
+.hud-bl b { color: var(--bone); font-weight: 700; }
+.hud-br {
+  bottom: 12px; right: 12px;
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: right;
+}
+.hud-br .row { margin-top: 4px; }
+.hud-br b { color: var(--gold); font-weight: 700; }
+.flash {
+  position: absolute;
+  width: 70px; height: 70px;
+  border-radius: 50%;
+  border: 2px solid var(--red);
+  transform: translate(-50%, -50%) scale(0.5);
+  opacity: 0.9;
+  pointer-events: none;
+  animation: flash 0.5s ease-out forwards;
+}
+.flash.left { border-color: var(--red); }
+.flash.right { border-color: var(--gold); }
+@keyframes flash {
+  to { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+.punch-label {
+  position: absolute;
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  color: var(--bone);
+  text-transform: uppercase;
+  transform: translate(-50%, -120%);
+  pointer-events: none;
+  animation: rise 0.6s ease-out forwards;
+  text-shadow: 0 0 6px rgba(0,0,0,0.9);
+  white-space: nowrap;
+}
+.video-frame.mirror .punch-label { transform: translate(-50%, -120%) scaleX(-1); }
+.video-frame.mirror .punch-label { animation: rise-m 0.6s ease-out forwards; }
+@keyframes rise { to { transform: translate(-50%, -200%); opacity: 0; } }
+@keyframes rise-m { to { transform: translate(-50%, -200%) scaleX(-1); opacity: 0; } }
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.controls button {
+  background: var(--bg-2);
+  color: var(--ink);
+  border: none;
+  padding: 12px 2px 10px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+.controls button:active { background: var(--bg-3); }
+.controls button.active { background: var(--bg-3); color: var(--gold); }
+.controls button.active::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--gold);
+}
+.controls button .icon {
+  font-family: var(--display);
+  font-size: 16px;
+  letter-spacing: 0;
+  color: var(--bone);
+  line-height: 1;
+}
+.controls button.rec .icon { color: var(--red); }
+.controls button.rec.active .icon { color: var(--red); }
+.controls button.rec.active {
+  background: #1a0606;
+  color: var(--red);
+}
+.controls button.rec.active::before { background: var(--red); }
+.controls button:disabled { opacity: 0.35; cursor: default; }
+
+.banner {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+  text-transform: uppercase;
+  background: rgba(0,0,0,0.6);
+  padding: 16px 28px;
+  border: 1px solid var(--gold);
+  pointer-events: none;
+  text-align: center;
+}
+.banner small {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--bone);
+  margin-top: 6px;
+  font-weight: 400;
+}
+
+#zoneHint {
+  position: absolute;
+  top: 14px; left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  text-transform: uppercase;
+  background: rgba(0,0,0,0.75);
+  padding: 10px 16px;
+  border: 1px solid var(--gold);
+  pointer-events: none;
+  text-align: center;
+  display: none;
+  z-index: 5;
+}
+#zoneHint small {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--bone);
+  margin-top: 4px;
+}
+
+/* ---------- Summary ---------- */
+#summary-screen { background: var(--bg); }
+.summary-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+.title-block {
+  border-left: 3px solid var(--red);
+  padding-left: 12px;
+  margin-bottom: 20px;
+}
+.title-block .kicker {
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+.title-block h1 {
+  font-family: var(--display);
+  font-size: 36px;
+  margin: 4px 0 0;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: var(--bone);
+}
+.title-block .meta {
+  margin-top: 6px;
+  font-size: 9px;
+  color: var(--ink-faint);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  margin-bottom: 16px;
+}
+.stat-cell {
+  background: var(--bg-2);
+  padding: 14px 12px;
+  text-align: left;
+}
+.stat-cell .label {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.stat-cell .val {
+  font-family: var(--display);
+  font-size: 30px;
+  line-height: 1;
+  color: var(--bone);
+  letter-spacing: -0.02em;
+}
+.stat-cell .sub {
+  font-size: 9px;
+  color: var(--ink-dim);
+  margin-top: 4px;
+  letter-spacing: 0.1em;
+}
+.breakdown {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  margin-bottom: 20px;
+}
+.breakdown .cell {
+  background: var(--bg-2);
+  padding: 10px 6px;
+  text-align: center;
+}
+.breakdown .cell .label {
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+.breakdown .cell .val {
+  font-family: var(--display);
+  font-size: 22px;
+  color: var(--bone);
+  margin-top: 4px;
+  line-height: 1;
+}
+.breakdown .cell.jab .val { color: var(--red); }
+.breakdown .cell.cross .val { color: var(--gold); }
+.breakdown .cell.hook .val { color: #f97316; }
+.breakdown .cell.upper .val { color: #a3e635; }
+
+.section { margin-bottom: 18px; }
+.section h3 {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section h3::before {
+  content: "";
+  width: 8px; height: 8px;
+  background: var(--red);
+  display: inline-block;
+}
+.canvas-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+  min-height: 120px;
+}
+#graphCanvas, #heatCanvas, #replayCanvas {
+  display: block;
+  width: 100%;
+  background: var(--bg-2);
+}
+.legend {
+  position: absolute;
+  bottom: 8px; right: 10px;
+  font-size: 9px;
+  color: var(--ink-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  display: flex;
+  gap: 10px;
+}
+.legend span { display: inline-flex; align-items: center; gap: 4px; }
+.legend .swatch { width: 8px; height: 8px; display: inline-block; }
+.legend .l { background: var(--red); }
+.legend .r { background: var(--gold); }
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--line);
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.actions button {
+  background: var(--bg-2);
+  color: var(--bone);
+  border: none;
+  padding: 14px 6px;
+  font-family: var(--display);
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.actions button:active { background: var(--bg-3); }
+.actions button.primary { background: var(--red); }
+.actions button.primary:active { background: var(--red-dim); }
+.actions.four { grid-template-columns: 1fr 1fr 1fr 1fr; }
+.actions button.subtle { font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; color: var(--ink-dim); }
+
+.disclaimer {
+  font-size: 10px;
+  color: var(--ink-faint);
+  line-height: 1.6;
+  letter-spacing: 0.03em;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  margin-bottom: 20px;
+  background: rgba(220, 38, 38, 0.03);
+}
+.disclaimer b {
+  color: var(--ink-dim);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 9px;
+}
+
+/* ---------- Replay ---------- */
+#replay-screen { background: #000; }
+.replay-wrap {
+  flex: 1;
+  position: relative;
+  background: var(--bg);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#replayCanvas {
+  max-width: 100%;
+  max-height: 100%;
+  background: var(--bg);
+}
+.replay-controls {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.replay-controls button {
+  background: var(--bg-3);
+  color: var(--bone);
+  border: 1px solid var(--line);
+  width: 44px; height: 44px;
+  font-family: var(--display);
+  font-size: 18px;
+  cursor: pointer;
+}
+.replay-controls button.play { background: var(--red); color: var(--bone); border-color: var(--red); }
+.replay-controls .scrub {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--line);
+  outline: none;
+}
+.replay-controls .scrub::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  background: var(--gold);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.replay-controls .scrub::-moz-range-thumb {
+  width: 18px; height: 18px;
+  background: var(--gold);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+.replay-time {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  letter-spacing: 0.1em;
+  min-width: 70px;
+  text-align: center;
+}
+
+/* ---------- History / Workouts ---------- */
+#history-screen { background: var(--bg); }
+.history-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+.history-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ink-faint);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.history-item {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  padding: 14px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  align-items: center;
+}
+.history-item:active { background: var(--bg-3); }
+.history-item .date {
+  font-family: var(--display);
+  font-size: 22px;
+  color: var(--bone);
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+.history-item .time {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.history-item .count {
+  font-family: var(--display);
+  font-size: 28px;
+  color: var(--red);
+  text-align: right;
+  line-height: 1;
+}
+.history-item .count-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-dim);
+  letter-spacing: 0.2em;
+  text-align: right;
+  text-transform: uppercase;
+}
+.history-item .source-tag {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-faint);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* ---------- Modal ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-backdrop.active { display: flex; }
+.modal {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  max-width: 360px;
+  width: 100%;
+  padding: 20px;
+}
+.modal h2 {
+  font-family: var(--display);
+  font-size: 24px;
+  margin: 0 0 6px;
+  color: var(--bone);
+  letter-spacing: 0.02em;
+}
+.modal .body {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+  letter-spacing: 0.03em;
+  margin-bottom: 16px;
+}
+.modal .body b { color: var(--bone); }
+.modal .body code {
+  background: var(--bg-3);
+  padding: 2px 6px;
+  font-size: 10px;
+  color: var(--gold);
+  border: 1px solid var(--line);
+}
+.modal .body p { margin: 0 0 10px; }
+.modal .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.toggle {
+  display: inline-flex;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+}
+.toggle button {
+  background: transparent;
+  border: none;
+  color: var(--ink-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 6px 12px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+.toggle button.active { background: var(--red); color: var(--bone); }
+.modal-close {
+  background: var(--red);
+  color: var(--bone);
+  border: none;
+  font-family: var(--display);
+  font-size: 16px;
+  padding: 12px 24px;
+  width: 100%;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed;
+  bottom: 80px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 10px 18px;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  z-index: 500;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  font-family: var(--mono);
+  text-align: center;
+  max-width: 80%;
+}
+.toast.show { opacity: 1; }
+
+/* ---------- Upload progress ---------- */
+#upload-screen { background: var(--bg); align-items: center; justify-content: center; text-align: center; }
+#upload-screen .upload-title {
+  font-family: var(--display);
+  font-size: 36px;
+  color: var(--bone);
+  letter-spacing: -0.01em;
+}
+#upload-screen .upload-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+#upload-screen .progress-bar {
+  width: 240px;
+  height: 4px;
+  background: var(--line);
+  margin-top: 28px;
+  position: relative;
+  overflow: hidden;
+}
+#upload-screen .progress-bar .fill {
+  position: absolute;
+  inset: 0 100% 0 0;
+  background: var(--red);
+  transition: right 0.2s;
+}
+#upload-screen .upload-pct {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  letter-spacing: 0.15em;
+}
+
+@media (max-width: 380px) {
+  .stat-cell .val { font-size: 24px; }
+  .breakdown .cell .val { font-size: 18px; }
+  .hud-tr .punches { font-size: 48px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============== SPLASH ============== -->
+<div id="splash" class="screen active">
+  <h1 class="logo">ACTONBOX</h1>
+  <div class="tag">Boxing Motion Tracker · Acton, MA</div>
+  <div class="splash-actions">
+    <button id="startLiveBtn" class="primary">
+      Live Round
+      <span class="sub">Camera · Real-Time</span>
+    </button>
+    <button id="startUploadBtn">
+      Analyze Video
+      <span class="sub">Upload a clip</span>
+    </button>
+    <button id="historyBtn">
+      Past Workouts
+      <span class="sub" id="historyCountSub">— Saved</span>
+    </button>
+  </div>
+  <div class="loader" id="loader"></div>
+  <div class="footer-link" id="aboutBtn">About · Setup · Privacy</div>
+</div>
+
+<!-- ============== LIVE ============== -->
+<div id="live-screen" class="screen">
+  <div class="topbar">
+    <span class="brand">ACTONBOX<span class="dot"></span></span>
+    <span class="stat" id="recIndicator" style="display:none;">
+      <span class="rec-dot"></span> REC
+    </span>
+    <span class="stat" id="stanceLabel">ORTH</span>
+    <span class="stat">FPS <b id="fpsLabel">—</b></span>
+  </div>
+  <div class="video-wrap" id="videoWrap">
+    <div class="video-frame" id="videoFrame">
+      <video id="video" playsinline webkit-playsinline muted autoplay></video>
+      <canvas id="overlay"></canvas>
+    </div>
+
+    <div class="hud hud-tl">
+      <div>TIME <b id="timeLabel" style="color:var(--bone);">00:00</b></div>
+      <div class="row">ZONES <b id="zoneCount" style="color:var(--bone);">0</b></div>
+    </div>
+    <div class="hud hud-tr">
+      <div class="punches" id="punchLabel">0</div>
+      <div class="label">Strikes</div>
+    </div>
+    <div class="hud hud-bl">
+      <div class="row">L <b id="lCount">0</b> &nbsp;/&nbsp; R <b id="rCount">0</b></div>
+      <div class="row" id="rateLabel">— /min</div>
+    </div>
+    <div class="hud hud-br">
+      <div class="row">PEAK <b id="peakVel">—</b> m/s</div>
+    </div>
+
+    <div class="banner" id="readyBanner">
+      READY
+      <small>Set zones · Choose stance · Hit REC</small>
+    </div>
+    <div id="zoneHint">
+      Tap to Add a Hit Point
+      <small>Tap existing point to remove · Hit Done when finished</small>
+    </div>
+  </div>
+  <div class="controls">
+    <button id="recBtn" class="rec">
+      <span class="icon" id="recIcon">●</span>
+      <span id="recLabel">REC</span>
+    </button>
+    <button id="zoneBtn">
+      <span class="icon">◎</span>
+      <span id="zoneBtnLabel">Zones</span>
+    </button>
+    <button id="stanceBtn">
+      <span class="icon">⇋</span>
+      <span>Stance</span>
+    </button>
+    <button id="flipBtn">
+      <span class="icon">⇄</span>
+      <span>Flip</span>
+    </button>
+    <button id="endBtn">
+      <span class="icon">■</span>
+      <span>End</span>
+    </button>
+  </div>
+</div>
+
+<!-- ============== UPLOAD PROGRESS ============== -->
+<div id="upload-screen" class="screen">
+  <div class="upload-title">Analyzing</div>
+  <div class="upload-sub" id="uploadFilename">video.mp4</div>
+  <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
+  <div class="upload-pct" id="progressPct">0%</div>
+</div>
+
+<!-- ============== SUMMARY ============== -->
+<div id="summary-screen" class="screen">
+  <div class="topbar">
+    <span class="brand">ACTONBOX<span class="dot"></span></span>
+    <span class="stat" id="summarySource">SESSION</span>
+  </div>
+  <div class="summary-body" id="summaryBody">
+    <div class="title-block">
+      <div class="kicker">Round Summary</div>
+      <h1 id="summaryDate">—</h1>
+      <div class="meta" id="summaryMeta">—</div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-cell">
+        <div class="label">Time</div>
+        <div class="val" id="sTime">0:00</div>
+        <div class="sub">Duration</div>
+      </div>
+      <div class="stat-cell">
+        <div class="label">Strikes</div>
+        <div class="val" id="sCount">0</div>
+        <div class="sub">Detected</div>
+      </div>
+      <div class="stat-cell">
+        <div class="label">Rate</div>
+        <div class="val" id="sRate">0</div>
+        <div class="sub">Per minute</div>
+      </div>
+    </div>
+
+    <div class="breakdown">
+      <div class="cell jab"><div class="label">Jab</div><div class="val" id="bJab">0</div></div>
+      <div class="cell cross"><div class="label">Cross</div><div class="val" id="bCross">0</div></div>
+      <div class="cell hook"><div class="label">Hook</div><div class="val" id="bHook">0</div></div>
+      <div class="cell upper"><div class="label">Upper</div><div class="val" id="bUpper">0</div></div>
+    </div>
+
+    <div class="section">
+      <h3>Rate Over Time</h3>
+      <div class="canvas-card">
+        <canvas id="graphCanvas" width="600" height="180"></canvas>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Wrist Position Map</h3>
+      <div class="canvas-card">
+        <canvas id="heatCanvas" width="600" height="450"></canvas>
+        <div class="legend">
+          <span><span class="swatch l"></span>Left</span>
+          <span><span class="swatch r"></span>Right</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      <b>What you're looking at:</b> wrist coordinates from 2D pose estimation, classified by elbow-angle dynamics, peak velocity, and trajectory shape. Counts are <em>motion events</em>, not impacts. Lead vs rear (jab vs cross) is inferred from your stance setting — set Orthodox if you lead with your left, Southpaw if you lead with your right.
+    </div>
+  </div>
+  <div class="actions four">
+    <button id="csvBtn" class="subtle">CSV</button>
+    <button id="replayBtn" class="subtle">Replay</button>
+    <button id="discardBtn" class="subtle">Discard</button>
+    <button id="newBtn" class="primary">Done</button>
+  </div>
+</div>
+
+<!-- ============== REPLAY ============== -->
+<div id="replay-screen" class="screen">
+  <div class="topbar">
+    <span class="brand">ACTONBOX<span class="dot"></span></span>
+    <span class="stat">REPLAY</span>
+    <button id="replayBackBtn">← Back</button>
+  </div>
+  <div class="replay-wrap">
+    <canvas id="replayCanvas" width="640" height="480"></canvas>
+  </div>
+  <div class="replay-controls">
+    <button id="replayPlay" class="play"><span id="replayPlayIcon">▶</span></button>
+    <input type="range" id="replayScrub" class="scrub" min="0" max="100" value="0" step="0.1">
+    <span class="replay-time" id="replayTime">0:00 / 0:00</span>
+  </div>
+</div>
+
+<!-- ============== HISTORY ============== -->
+<div id="history-screen" class="screen">
+  <div class="topbar">
+    <span class="brand">ACTONBOX<span class="dot"></span></span>
+    <span class="stat">WORKOUTS</span>
+    <button id="historyBackBtn">← Back</button>
+  </div>
+  <div class="history-body" id="historyBody"></div>
+</div>
+
+<!-- ============== ABOUT MODAL ============== -->
+<div class="modal-backdrop" id="aboutModal">
+  <div class="modal">
+    <h2>ACTONBOX</h2>
+    <div class="body">
+      <p><b>Local Setup:</b> Download this <code>index.html</code> to a folder. Run a local web server (camera requires HTTPS or localhost, NOT <code>file://</code>):</p>
+      <p style="font-family:var(--mono);font-size:10px;background:var(--bg-3);padding:8px;border:1px solid var(--line);">cd /path/to/folder<br>python3 -m http.server 8000</p>
+      <p>Then open <code>http://localhost:8000</code> in your browser.</p>
+      <p><b>Wi-Fi:</b> Required on first run to fetch TF.js + MoveNet from the CDN (~5 MB). Browsers cache these, so re-runs work offline until cache clears.</p>
+      <p><b>Storage:</b> Workouts save to this browser's <code>localStorage</code>, on this device only. Up to 50 sessions kept. Clearing browser data deletes them.</p>
+      <p><b>Privacy:</b> Camera frames never leave your device. Only the open-source pose model is loaded over the network.</p>
+    </div>
+    <div class="row">
+      <span>Stance</span>
+      <div class="toggle">
+        <button id="stanceToggleOrtho" class="active">Orthodox</button>
+        <button id="stanceToggleSouth">Southpaw</button>
+      </div>
+    </div>
+    <div class="row">
+      <span>Clear all workouts</span>
+      <button id="clearAllBtn" style="background:var(--bg-3);border:1px solid var(--red-dim);color:var(--red);font-family:var(--mono);font-size:10px;padding:6px 10px;letter-spacing:0.15em;cursor:pointer;">DELETE</button>
+    </div>
+    <button class="modal-close" id="aboutCloseBtn">Close</button>
+  </div>
+</div>
+
+<!-- Hidden file input -->
+<input type="file" id="fileInput" accept="video/*" style="display:none;">
+
+<div class="toast" id="toast"></div>
+
+<!-- TF.js + pose-detection from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.20.0/dist/tf-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.20.0/dist/tf-converter.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.20.0/dist/tf-backend-webgl.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@4.20.0/dist/tf-backend-wasm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.20.0/dist/tf-backend-cpu.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
+
+<script>
+"use strict";
+
+/* =====================================================
+   CONFIG
+   ===================================================== */
+const CONFIG = {
+  WINDOW_SIZE: 15,            // rolling frame buffer per analyzer
+  MIN_CONF_WRIST: 0.20,
+  MIN_CONF_ELBOW: 0.30,
+  MIN_CONF_SHOULDER: 0.30,
+  MIN_CONF_HIP: 0.25,
+
+  TRIGGER_VEL_MPS: 1.2,        // lowered: 2.5 missed real punches in 2D phone view
+  EXIT_VEL_MPS: 0.4,            // lowered accordingly
+  CLASSIFY_MAX_MS: 500,         // wider window for slower/partial extensions
+  RESET_PROXIMITY_RATIO: 1.2,   // wider re-arm so debounce doesn't block fast combos
+
+  JAB_MIN_ANGLE: 130,           // real jabs rarely reach 150 on phone camera
+  JAB_Y_FLAT_RATIO: 0.65,       // allow slight diagonal delivery
+  HOOK_MIN_ELBOW: 55,           // 2D projection compresses the angle
+  HOOK_MAX_ELBOW: 135,
+  HOOK_MIN_SHOULDER_ANGLE: 55,
+  HOOK_MAX_SHOULDER_ANGLE: 125,
+  HOOK_X_RATIO: 0.40,           // lower bar on horizontal dominance
+  UPPER_MAX_ELBOW: 140,
+  UPPER_DIP_MIN_PX_RATIO: 0.08, // smaller dip still counts
+
+  TORSO_REAL_M: 0.55,           // shoulder-to-hip mean ~55cm; used for px-per-meter
+  SHOULDER_REAL_M: 0.42,        // fallback if hips invisible
+
+  MAX_REPLAY_FRAMES: 1500,
+  MAX_CSV_ROWS: 30000,
+  REPLAY_SAMPLE_EVERY: 3,
+  PUNCH_COOLDOWN_MS: 150,
+
+  FPS_ALPHA: 0.15,
+  MAX_HISTORY: 50,
+  STORAGE_KEY: 'actonbox.workouts.v1',
+  STANCE_KEY: 'actonbox.stance.v1',
+};
+
+const KP = {
+  NOSE: 0, L_EYE: 1, R_EYE: 2, L_EAR: 3, R_EAR: 4,
+  L_SHOULDER: 5, R_SHOULDER: 6,
+  L_ELBOW: 7, R_ELBOW: 8,
+  L_WRIST: 9, R_WRIST: 10,
+  L_HIP: 11, R_HIP: 12,
+  L_KNEE: 13, R_KNEE: 14,
+  L_ANKLE: 15, R_ANKLE: 16,
+};
+
+const SKELETON = [
+  [5,7],[7,9],[6,8],[8,10],
+  [5,6],[5,11],[6,12],[11,12],
+  [11,13],[13,15],[12,14],[14,16],
+  [0,5],[0,6]
+];
+
+const KP_NAMES = ['nose','leye','reye','lear','rear','lsh','rsh','lelb','relb',
+                  'lwr','rwr','lhip','rhip','lkn','rkn','lank','rank'];
+
+/* =====================================================
+   STATE
+   ===================================================== */
+const STATE = {
+  detector: null,
+  stream: null,
+  facingMode: 'user',
+  recordingFacingMode: 'user',
+  source: 'live',             // 'live' or 'upload'
+  running: false,
+  recording: false,
+  startT: 0,
+  punches: [],
+  replay: [],
+  csv: [],
+  hitZones: [],               // array of {cx, cy, r} in normalized data coords
+  zoneSetting: false,
+  stance: 'orthodox',         // 'orthodox' | 'southpaw'
+  fps: 0,
+  fpsCount: 0,
+  fpsT: 0,
+  videoW: 640,
+  videoH: 480,
+  loopId: 0,
+  peakVel: 0,
+  analyzer: null,
+  uploadVideo: null,
+};
+
+/* =====================================================
+   DOM
+   ===================================================== */
+const $ = (id) => document.getElementById(id);
+const splash = $('splash');
+const liveScreen = $('live-screen');
+const summaryScreen = $('summary-screen');
+const replayScreen = $('replay-screen');
+const historyScreen = $('history-screen');
+const uploadScreen = $('upload-screen');
+const video = $('video');
+const overlay = $('overlay');
+const overlayCtx = overlay.getContext('2d');
+const videoWrap = $('videoWrap');
+const videoFrame = $('videoFrame');
+const loader = $('loader');
+const toast = $('toast');
+
+let toastTimer = 0;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+}
+
+function setScreen(name) {
+  for (const el of [splash, liveScreen, summaryScreen, replayScreen, historyScreen, uploadScreen]) {
+    el.classList.remove('active');
+  }
+  ({
+    splash, live: liveScreen, summary: summaryScreen, replay: replayScreen,
+    history: historyScreen, upload: uploadScreen
+  })[name].classList.add('active');
+}
+
+/* =====================================================
+   GEOMETRY
+   ===================================================== */
+function angleAt(a, b, c) {
+  if (!a || !b || !c) return null;
+  const v1x = a.x - b.x, v1y = a.y - b.y;
+  const v2x = c.x - b.x, v2y = c.y - b.y;
+  const m1 = Math.hypot(v1x, v1y);
+  const m2 = Math.hypot(v2x, v2y);
+  if (m1 < 1e-3 || m2 < 1e-3) return null;
+  const c2 = Math.max(-1, Math.min(1, (v1x * v2x + v1y * v2y) / (m1 * m2)));
+  return Math.acos(c2) * 180 / Math.PI;
+}
+
+function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+/* =====================================================
+   BOXING ANALYZER (the pro's spec)
+   ===================================================== */
+class BoxingAnalyzer {
+  /*
+    States per hand:
+      GUARD            — at rest; watch for velocity spike to enter PUNCH_INITIATED
+      PUNCH_INITIATED  — accumulating frames; track angles, ΔX, ΔY; on exit, classify
+      DEBOUNCE_RESET   — punch counted; wait for wrist near face before re-arming
+  */
+  constructor(stance = 'orthodox') {
+    this.stance = stance;
+    this.window = []; // [{t, kps, perSide, ppm}]
+    this.handState = {
+      left:  this._freshHand(),
+      right: this._freshHand(),
+    };
+    this.peakVel = 0;
+  }
+  setStance(s) { this.stance = s; }
+  _freshHand() {
+    return {
+      state: 'GUARD',
+      windowStartT: 0,        // absolute timestamp when PUNCH_INITIATED began
+      peakAngle: 0,
+      minAngle: 999,
+      peakAngleT: 0,
+      maxX: 0, minX: 1e9, maxY: 0, minY: 1e9,
+      maxShoulderAngle: 0,
+      yTrajectory: [],
+      lastPunchT: 0,
+      classifiedT: 0,
+      peakWrist: null,
+    };
+  }
+  reset() {
+    this.window = [];
+    this.handState.left = this._freshHand();
+    this.handState.right = this._freshHand();
+    this.peakVel = 0;
+  }
+
+  /* px-per-meter using torso height as the primary anchor. Torso is more
+     perspective-stable than shoulder width when boxer turns sideways. */
+  _pixelsPerMeter(kps) {
+    const ls = kps[KP.L_SHOULDER], rs = kps[KP.R_SHOULDER];
+    const lh = kps[KP.L_HIP], rh = kps[KP.R_HIP];
+    // Average of left and right torso lengths if both visible
+    let torsoPx = null;
+    if (ls && lh && ls.score >= CONFIG.MIN_CONF_SHOULDER && lh.score >= CONFIG.MIN_CONF_HIP) {
+      const l = dist(ls, lh);
+      if (l > 20) torsoPx = l;
+    }
+    if (rs && rh && rs.score >= CONFIG.MIN_CONF_SHOULDER && rh.score >= CONFIG.MIN_CONF_HIP) {
+      const r = dist(rs, rh);
+      if (r > 20) torsoPx = torsoPx === null ? r : (torsoPx + r) / 2;
+    }
+    if (torsoPx !== null) return torsoPx / CONFIG.TORSO_REAL_M;
+
+    // Fallback: shoulder width
+    if (ls && rs && ls.score >= CONFIG.MIN_CONF_SHOULDER && rs.score >= CONFIG.MIN_CONF_SHOULDER) {
+      const w = dist(ls, rs);
+      if (w > 20) return w / CONFIG.SHOULDER_REAL_M;
+    }
+    return null;
+  }
+
+  _sideData(kps, side) {
+    const map = side === 'left'
+      ? { w: KP.L_WRIST, e: KP.L_ELBOW, s: KP.L_SHOULDER, h: KP.L_HIP, ear: KP.L_EAR }
+      : { w: KP.R_WRIST, e: KP.R_ELBOW, s: KP.R_SHOULDER, h: KP.R_HIP, ear: KP.R_EAR };
+    const w = kps[map.w], e = kps[map.e], s = kps[map.s], h = kps[map.h];
+    const okWrist = w && w.score >= CONFIG.MIN_CONF_WRIST;
+    const okElbow = e && e.score >= CONFIG.MIN_CONF_ELBOW;
+    const okShoulder = s && s.score >= CONFIG.MIN_CONF_SHOULDER;
+    const valid = okWrist && okElbow && okShoulder;
+    const elbowAngle = valid ? angleAt(s, e, w) : null;        // shoulder-elbow-wrist
+    const shoulderAngle = (valid && h && h.score >= CONFIG.MIN_CONF_HIP)
+      ? angleAt(h, s, e) : null;                                // hip-shoulder-elbow (arm flare)
+    return {
+      valid, wrist: w, elbow: e, shoulder: s, hip: h, ear: kps[map.ear],
+      elbowAngle, shoulderAngle,
+    };
+  }
+
+  _isLead(side) {
+    if (this.stance === 'orthodox') return side === 'left';
+    return side === 'right'; // southpaw
+  }
+
+  /*
+    Main entry. Called once per frame with raw MoveNet keypoints.
+    Returns: { punches: [...], leftElbowAngle, rightElbowAngle, states, peakVelMps }
+  */
+  analyzeBoxingFrame(kps, t, W, H) {
+    const ppm = this._pixelsPerMeter(kps);
+    const perSide = {
+      left:  this._sideData(kps, 'left'),
+      right: this._sideData(kps, 'right'),
+    };
+
+    // Push to sliding window
+    this.window.push({ t, kps, perSide, ppm });
+    if (this.window.length > CONFIG.WINDOW_SIZE) this.window.shift();
+
+    const out = {
+      punches: [],
+      leftElbowAngle: perSide.left.elbowAngle,
+      rightElbowAngle: perSide.right.elbowAngle,
+      states: { left: this.handState.left.state, right: this.handState.right.state },
+      peakVelMps: 0,
+    };
+
+    if (this.window.length < 2 || ppm === null) return out;
+
+    const cur = this.window[this.window.length - 1];
+    const prev = this.window[this.window.length - 2];
+    const dt = (cur.t - prev.t) / 1000;
+    if (dt <= 0 || dt > 0.3) return out;
+
+    let frameMaxVel = 0;
+    for (const side of ['left', 'right']) {
+      const st = this.handState[side];
+      const cd = cur.perSide[side];
+      const pd = prev.perSide[side];
+
+      // Need wrist visible in current frame for any analysis
+      if (!cd.valid || !pd.valid) {
+        // Don't change state on a brief invisibility — soft pause.
+        continue;
+      }
+
+      const dxPx = cd.wrist.x - pd.wrist.x;
+      const dyPx = cd.wrist.y - pd.wrist.y;
+      const stepPx = Math.hypot(dxPx, dyPx);
+      const velMps = (stepPx / cur.ppm) / dt;
+      if (velMps > frameMaxVel) frameMaxVel = velMps;
+
+      // ---------- STATE: GUARD ----------
+      if (st.state === 'GUARD') {
+        if (velMps > CONFIG.TRIGGER_VEL_MPS) {
+          st.state = 'PUNCH_INITIATED';
+          st.windowStartT = cur.t;
+          st.peakAngle = cd.elbowAngle || 0;
+          st.minAngle = cd.elbowAngle || 999;
+          st.peakAngleT = cur.t;
+          st.maxX = cd.wrist.x; st.minX = cd.wrist.x;
+          st.maxY = cd.wrist.y; st.minY = cd.wrist.y;
+          st.maxShoulderAngle = cd.shoulderAngle || 0;
+          st.yTrajectory = [cd.wrist.y];
+          st.peakWrist = { x: cd.wrist.x, y: cd.wrist.y };
+        }
+      }
+
+      // ---------- STATE: PUNCH_INITIATED ----------
+      else if (st.state === 'PUNCH_INITIATED') {
+        // Accumulate bounds
+        if (cd.wrist.x > st.maxX) st.maxX = cd.wrist.x;
+        if (cd.wrist.x < st.minX) st.minX = cd.wrist.x;
+        if (cd.wrist.y > st.maxY) st.maxY = cd.wrist.y;
+        if (cd.wrist.y < st.minY) st.minY = cd.wrist.y;
+        st.yTrajectory.push(cd.wrist.y);
+
+        if (cd.elbowAngle !== null) {
+          if (cd.elbowAngle > st.peakAngle) {
+            st.peakAngle = cd.elbowAngle;
+            st.peakAngleT = cur.t;
+            st.peakWrist = { x: cd.wrist.x, y: cd.wrist.y };
+          }
+          if (cd.elbowAngle < st.minAngle) st.minAngle = cd.elbowAngle;
+        }
+        if (cd.shoulderAngle !== null && cd.shoulderAngle > st.maxShoulderAngle) {
+          st.maxShoulderAngle = cd.shoulderAngle;
+        }
+
+        // Exit when velocity drops OR window is full
+        const elapsed = cur.t - st.windowStartT;
+        const shouldClassify = velMps < CONFIG.EXIT_VEL_MPS || elapsed > CONFIG.CLASSIFY_MAX_MS;
+
+        if (shouldClassify) {
+          const subWindow = this.window.filter(f => f.t >= st.windowStartT);
+          const result = this._classify(side, st, subWindow, cur.ppm);
+          if (result.type && (cur.t - st.lastPunchT) > CONFIG.PUNCH_COOLDOWN_MS) {
+            const w = st.peakWrist;
+            const nx = w.x / W;
+            const ny = w.y / H;
+            // Analyzer is decoupled from zone state. The caller (live loop or
+            // upload handler) applies the hit-zone filter after this returns.
+            out.punches.push({
+              side, type: result.type,
+              confidence: result.confidence,
+              nx, ny,
+              vel: +result.peakVelMps.toFixed(2),
+              elbowAngle: +st.peakAngle.toFixed(1),
+              t: cur.t,
+            });
+            st.lastPunchT = cur.t;
+          }
+          st.classifiedT = cur.t;
+          st.state = 'DEBOUNCE_RESET';
+        }
+      }
+
+      // ---------- STATE: DEBOUNCE_RESET ----------
+      else if (st.state === 'DEBOUNCE_RESET') {
+        // Re-arm when wrist returns near the ear/nose (guard position) OR after 600ms timeout.
+        const ref = (cd.ear && cd.ear.score >= 0.30) ? cd.ear :
+                    (cur.kps[KP.NOSE] && cur.kps[KP.NOSE].score >= 0.30) ? cur.kps[KP.NOSE] : null;
+        if (ref) {
+          const ls = cur.kps[KP.L_SHOULDER], rs = cur.kps[KP.R_SHOULDER];
+          const shoulderPx = (ls && rs && ls.score > 0.3 && rs.score > 0.3) ? dist(ls, rs) : 100;
+          const proximity = dist(cd.wrist, ref);
+          if (proximity < shoulderPx * CONFIG.RESET_PROXIMITY_RATIO) {
+            st.state = 'GUARD';
+          }
+        }
+        if (cur.t - st.classifiedT > 600) st.state = 'GUARD'; // safety timeout
+      }
+    }
+
+    if (frameMaxVel > this.peakVel) this.peakVel = frameMaxVel;
+    out.peakVelMps = frameMaxVel;
+    return out;
+  }
+
+  _classify(side, st, subWindow, ppm) {
+    const dx = st.maxX - st.minX;
+    const dy = st.maxY - st.minY;
+    const total = dx + dy;
+    if (total < 1) return { type: null, confidence: 0, peakVelMps: 0 };
+    const xRatio = dx / total;
+    const yRatio = dy / total;
+
+    // Peak velocity across the punch
+    let peakVel = 0;
+    for (let i = 1; i < subWindow.length; i++) {
+      const a = subWindow[i].perSide[side], b = subWindow[i-1].perSide[side];
+      if (!a.valid || !b.valid) continue;
+      const ddt = (subWindow[i].t - subWindow[i-1].t) / 1000;
+      if (ddt <= 0) continue;
+      const v = (dist(a.wrist, b.wrist) / subWindow[i].ppm) / ddt;
+      if (v > peakVel) peakVel = v;
+    }
+
+    // ----- JAB / CROSS -----
+    // Elbow extends past 150°, ΔY relatively flat (mostly horizontal arc)
+    if (st.peakAngle >= CONFIG.JAB_MIN_ANGLE && yRatio <= CONFIG.JAB_Y_FLAT_RATIO) {
+      const isLead = this._isLead(side);
+      const type = isLead ? 'jab' : 'cross';
+      // Confidence: how cleanly the criteria met
+      const angleScore = Math.min(1, (st.peakAngle - 150) / 25);     // 150 → 0, 175 → 1
+      const flatScore = Math.min(1, (CONFIG.JAB_Y_FLAT_RATIO - yRatio) / 0.4);
+      const velScore = Math.min(1, peakVel / 5);                     // 5 m/s → 1
+      const conf = Math.max(0.5, (angleScore + flatScore + velScore) / 3);
+      return { type, confidence: +conf.toFixed(2), peakVelMps: peakVel };
+    }
+
+    // ----- HOOK -----
+    // Elbow locked 70-125°, shoulder angle 70-115°, horizontal arc dominant
+    if (st.minAngle >= CONFIG.HOOK_MIN_ELBOW &&
+        st.peakAngle <= CONFIG.HOOK_MAX_ELBOW &&
+        st.maxShoulderAngle >= CONFIG.HOOK_MIN_SHOULDER_ANGLE &&
+        st.maxShoulderAngle <= CONFIG.HOOK_MAX_SHOULDER_ANGLE &&
+        xRatio >= CONFIG.HOOK_X_RATIO) {
+      const arcScore = Math.min(1, xRatio);
+      const lockScore = (st.peakAngle - st.minAngle) < 35 ? 1 : 0.6; // tight elbow lock
+      const velScore = Math.min(1, peakVel / 5);
+      const conf = Math.max(0.5, (arcScore + lockScore + velScore) / 3);
+      return { type: 'hook', confidence: +conf.toFixed(2), peakVelMps: peakVel };
+    }
+
+    // ----- UPPERCUT -----
+    // Elbow bent (<130°), clear DIP THEN RISE in y trajectory.
+    // In image coords, y increases downward, so dip = larger y, rise = smaller y.
+    if (st.peakAngle <= CONFIG.UPPER_MAX_ELBOW && st.yTrajectory.length >= 4) {
+      const ys = st.yTrajectory;
+      // Find max y (lowest point of dip) and min y (highest point of rise)
+      let maxYi = 0, minYi = 0;
+      for (let i = 0; i < ys.length; i++) {
+        if (ys[i] > ys[maxYi]) maxYi = i;
+        if (ys[i] < ys[minYi]) minYi = i;
+      }
+      // Dip must precede rise
+      if (maxYi < minYi) {
+        const dipMagnitudePx = ys[maxYi] - ys[minYi];
+        const torsoPx = CONFIG.TORSO_REAL_M * ppm;
+        const dipRatio = dipMagnitudePx / torsoPx;
+        if (dipRatio >= CONFIG.UPPER_DIP_MIN_PX_RATIO) {
+          const dipScore = Math.min(1, dipRatio / 0.5);
+          const velScore = Math.min(1, peakVel / 4);
+          const conf = Math.max(0.5, (dipScore + velScore) / 2);
+          return { type: 'uppercut', confidence: +conf.toFixed(2), peakVelMps: peakVel };
+        }
+      }
+    }
+
+    return { type: null, confidence: 0, peakVelMps: peakVel };
+  }
+}
+
+/* =====================================================
+   STORAGE (localStorage)
+   ===================================================== */
+const Storage = {
+  loadAll() {
+    try {
+      const raw = localStorage.getItem(CONFIG.STORAGE_KEY);
+      if (!raw) return [];
+      return JSON.parse(raw);
+    } catch (e) { console.warn('History load failed', e); return []; }
+  },
+  saveAll(arr) {
+    try {
+      localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(arr));
+      return true;
+    } catch (e) {
+      console.warn('History save failed (quota?)', e);
+      showToast('Storage full — clear old workouts');
+      return false;
+    }
+  },
+  add(entry) {
+    let all = this.loadAll();
+    all.unshift(entry);
+    if (all.length > CONFIG.MAX_HISTORY) all = all.slice(0, CONFIG.MAX_HISTORY);
+    return this.saveAll(all);
+  },
+  delete(id) {
+    const all = this.loadAll().filter(e => e.id !== id);
+    return this.saveAll(all);
+  },
+  clear() { localStorage.removeItem(CONFIG.STORAGE_KEY); },
+  loadStance() {
+    return localStorage.getItem(CONFIG.STANCE_KEY) || 'orthodox';
+  },
+  saveStance(s) { localStorage.setItem(CONFIG.STANCE_KEY, s); },
+};
+
+/* =====================================================
+   MODEL + CAMERA
+   ===================================================== */
+async function pickBackend() {
+  const tryB = async (name) => {
+    try { await tf.setBackend(name); await tf.ready(); return tf.getBackend() === name; }
+    catch (e) { return false; }
+  };
+  if (await tryB('webgl')) return 'webgl';
+  loader.textContent = 'WebGL unavailable — trying WASM';
+  if (await tryB('wasm')) return 'wasm';
+  loader.textContent = 'WASM unavailable — using CPU (slow)';
+  if (await tryB('cpu')) return 'cpu';
+  throw new Error('No TF backend available');
+}
+
+async function loadDetector() {
+  loader.textContent = 'Loading MoveNet…';
+  return await poseDetection.createDetector(
+    poseDetection.SupportedModels.MoveNet,
+    {
+      modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+      enableSmoothing: true,
+    }
+  );
+}
+
+async function ensureDetector() {
+  if (STATE.detector) return;
+  const backend = await pickBackend();
+  loader.textContent = `Backend: ${backend} · loading model…`;
+  STATE.detector = await loadDetector();
+}
+
+async function setupCamera(facingMode) {
+  if (STATE.stream) { STATE.stream.getTracks().forEach(t => t.stop()); STATE.stream = null; }
+  const constraints = {
+    audio: false,
+    video: { facingMode: { ideal: facingMode }, width: { ideal: 640 }, height: { ideal: 480 } }
+  };
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  STATE.stream = stream;
+  video.srcObject = stream;
+  await new Promise((resolve) => {
+    if (video.readyState >= 2) return resolve();
+    video.onloadedmetadata = () => resolve();
+  });
+  await video.play();
+  STATE.videoW = video.videoWidth || 640;
+  STATE.videoH = video.videoHeight || 480;
+  sizeOverlay();
+}
+
+function sizeOverlay() {
+  overlay.width = STATE.videoW;
+  overlay.height = STATE.videoH;
+  videoFrame.style.aspectRatio = STATE.videoW + ' / ' + STATE.videoH;
+  videoFrame.classList.toggle('mirror', STATE.facingMode === 'user' && STATE.source === 'live');
+}
+
+/* =====================================================
+   DRAW
+   ===================================================== */
+function drawSkeleton(kps) {
+  overlayCtx.lineWidth = 3;
+  for (const [a, b] of SKELETON) {
+    const ka = kps[a], kb = kps[b];
+    if (!ka || !kb || ka.score < 0.25 || kb.score < 0.25) continue;
+    const isArm = (a === 5 && b === 7) || (a === 7 && b === 9) ||
+                  (a === 6 && b === 8) || (a === 8 && b === 10);
+    overlayCtx.strokeStyle = isArm ? '#dc2626' : '#f4f1ea';
+    overlayCtx.beginPath();
+    overlayCtx.moveTo(ka.x, ka.y);
+    overlayCtx.lineTo(kb.x, kb.y);
+    overlayCtx.stroke();
+  }
+  for (let i = 0; i < kps.length; i++) {
+    const k = kps[i];
+    if (!k || k.score < 0.25) continue;
+    const r = (i === KP.L_WRIST || i === KP.R_WRIST) ? 6 : 3;
+    overlayCtx.fillStyle = (i === KP.L_WRIST) ? '#dc2626'
+                        : (i === KP.R_WRIST) ? '#fbbf24'
+                        : '#f4f1ea';
+    overlayCtx.beginPath();
+    overlayCtx.arc(k.x, k.y, r, 0, Math.PI * 2);
+    overlayCtx.fill();
+  }
+}
+
+function passesZoneFilter(nx, ny) {
+  if (STATE.hitZones.length === 0) return true;
+  for (const z of STATE.hitZones) {
+    if (Math.hypot(nx - z.cx, ny - z.cy) < z.r) return true;
+  }
+  return false;
+}
+
+function drawHitZones() {
+  if (STATE.hitZones.length === 0) return;
+  const W = overlay.width, H = overlay.height;
+  overlayCtx.lineWidth = 2;
+  overlayCtx.setLineDash([8, 6]);
+  for (let i = 0; i < STATE.hitZones.length; i++) {
+    const z = STATE.hitZones[i];
+    const cx = z.cx * W, cy = z.cy * H, rr = z.r * Math.min(W, H);
+    overlayCtx.strokeStyle = 'rgba(251, 191, 36, 0.7)';
+    overlayCtx.beginPath();
+    overlayCtx.arc(cx, cy, rr, 0, Math.PI * 2);
+    overlayCtx.stroke();
+    // Index marker
+    overlayCtx.fillStyle = 'rgba(251, 191, 36, 0.18)';
+    overlayCtx.beginPath();
+    overlayCtx.arc(cx, cy, rr, 0, Math.PI * 2);
+    overlayCtx.fill();
+    overlayCtx.fillStyle = 'rgba(251, 191, 36, 0.95)';
+    overlayCtx.beginPath();
+    overlayCtx.arc(cx, cy, 3, 0, Math.PI * 2);
+    overlayCtx.fill();
+  }
+  overlayCtx.setLineDash([]);
+}
+
+function flashPunch(hit) {
+  const f = document.createElement('div');
+  f.className = 'flash ' + hit.side;
+  f.style.left = (hit.nx * 100) + '%';
+  f.style.top = (hit.ny * 100) + '%';
+  videoFrame.appendChild(f);
+  setTimeout(() => f.remove(), 600);
+
+  const lbl = document.createElement('div');
+  lbl.className = 'punch-label';
+  lbl.textContent = hit.type;
+  lbl.style.left = (hit.nx * 100) + '%';
+  lbl.style.top = (hit.ny * 100) + '%';
+  lbl.style.color = hit.side === 'left' ? '#dc2626' : '#fbbf24';
+  videoFrame.appendChild(lbl);
+  setTimeout(() => lbl.remove(), 700);
+}
+
+function smoothFPS(prev, cur) { return prev === 0 ? cur : prev + CONFIG.FPS_ALPHA * (cur - prev); }
+function fmtTime(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return String(Math.floor(s / 60)) + ':' + String(s % 60).padStart(2, '0');
+}
+
+function updateHUD() {
+  $('fpsLabel').textContent = STATE.fps ? Math.round(STATE.fps) : '—';
+  const elapsed = STATE.recording ? (performance.now() - STATE.startT) : 0;
+  $('timeLabel').textContent = fmtTime(elapsed);
+  $('zoneCount').textContent = STATE.hitZones.length;
+  $('peakVel').textContent = STATE.peakVel > 0 ? STATE.peakVel.toFixed(1) : '—';
+  $('stanceLabel').textContent = STATE.stance === 'orthodox' ? 'ORTH' : 'SOUTH';
+  const total = STATE.punches.length;
+  $('punchLabel').textContent = total;
+  let l = 0, r = 0;
+  for (const p of STATE.punches) { if (p.side === 'left') l++; else r++; }
+  $('lCount').textContent = l;
+  $('rCount').textContent = r;
+  const mins = elapsed / 60000;
+  const rate = mins > 0.05 ? Math.round(total / mins) : 0;
+  $('rateLabel').textContent = rate + ' /min';
+}
+
+/* =====================================================
+   LIVE LOOP
+   ===================================================== */
+async function loop() {
+  if (!STATE.running) return;
+
+  const t = performance.now();
+  let poses = [];
+  try {
+    poses = await STATE.detector.estimatePoses(video, { flipHorizontal: false });
+  } catch (e) {
+    console.error('Estimation error:', e);
+  }
+
+  STATE.fpsCount++;
+  const fpsDt = t - STATE.fpsT;
+  if (fpsDt > 500) {
+    STATE.fps = smoothFPS(STATE.fps, STATE.fpsCount * 1000 / fpsDt);
+    STATE.fpsCount = 0;
+    STATE.fpsT = t;
+  }
+
+  overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+
+  if (poses.length > 0 && poses[0].keypoints) {
+    const kps = poses[0].keypoints;
+    drawSkeleton(kps);
+    drawHitZones();
+
+    if (STATE.recording) {
+      const result = STATE.analyzer.analyzeBoxingFrame(kps, t, overlay.width, overlay.height);
+      if (result.peakVelMps > STATE.peakVel) STATE.peakVel = result.peakVelMps;
+
+      for (const hit of result.punches) {
+        if (!passesZoneFilter(hit.nx, hit.ny)) continue;
+        // Convert hit.t into session-relative time
+        const sessionT = t - STATE.startT;
+        const punch = { ...hit, t: sessionT };
+        STATE.punches.push(punch);
+        flashPunch(punch);
+      }
+
+      // Ring-buffered replay
+      if ((STATE.replay.length % CONFIG.REPLAY_SAMPLE_EVERY) === 0) {
+        if (STATE.replay.length >= CONFIG.MAX_REPLAY_FRAMES) STATE.replay.shift();
+        STATE.replay.push({
+          t: t - STATE.startT,
+          k: kps.map(k => ({ x: Math.round(k.x), y: Math.round(k.y), s: +((k.score || 0).toFixed(2)) })),
+        });
+      }
+      // Ring-buffered CSV
+      if (STATE.csv.length >= CONFIG.MAX_CSV_ROWS) STATE.csv.shift();
+      const row = [Math.round(t - STATE.startT)];
+      for (const k of kps) row.push(k.x.toFixed(1), k.y.toFixed(1), (k.score || 0).toFixed(2));
+      STATE.csv.push(row);
+    }
+  } else {
+    drawHitZones();
+  }
+
+  updateHUD();
+  STATE.loopId = requestAnimationFrame(loop);
+}
+
+/* =====================================================
+   RECORDING CONTROL
+   ===================================================== */
+function startRecording() {
+  STATE.recording = true;
+  STATE.startT = performance.now();
+  STATE.recordingFacingMode = STATE.facingMode;
+  STATE.source = 'live';
+  STATE.punches = [];
+  STATE.replay = [];
+  STATE.csv = [];
+  STATE.peakVel = 0;
+  STATE.analyzer = new BoxingAnalyzer(STATE.stance);
+  $('recIndicator').style.display = 'inline-flex';
+  $('recIcon').textContent = '■';
+  $('recLabel').textContent = 'STOP';
+  $('recBtn').classList.add('active');
+  $('readyBanner').style.display = 'none';
+  showToast('Round started');
+}
+
+function stopRecording(goToSummary = true) {
+  STATE.recording = false;
+  $('recIndicator').style.display = 'none';
+  $('recIcon').textContent = '●';
+  $('recLabel').textContent = 'REC';
+  $('recBtn').classList.remove('active');
+  if (goToSummary) {
+    cancelAnimationFrame(STATE.loopId);
+    STATE.running = false;
+    setScreen('summary');
+    // Defer populateSummary to next frame so the summary screen has its
+    // layout dimensions, otherwise canvas parent clientWidth = 0
+    // and the graph + heatmap render blank. THIS IS THE GRAPH FIX.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => populateSummary());
+    });
+  }
+}
+
+/* =====================================================
+   SUMMARY
+   ===================================================== */
+function computeDurationMs() {
+  if (STATE.punches.length > 0) {
+    const last = STATE.punches[STATE.punches.length - 1].t;
+    return Math.max(last + 500, 1000);
+  }
+  return Math.max(performance.now() - STATE.startT, 1000);
+}
+
+function populateSummary() {
+  const dur = computeDurationMs();
+  const total = STATE.punches.length;
+  const mins = dur / 60000;
+
+  const now = new Date();
+  $('summaryDate').textContent = now.toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric',
+  }) + ' · ' + now.toLocaleTimeString('en-US', {
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+  $('summaryMeta').textContent = (STATE.source === 'upload' ? 'Uploaded Video' : 'Live Session') +
+    ' · ' + (STATE.stance === 'orthodox' ? 'Orthodox' : 'Southpaw') +
+    (STATE.peakVel > 0 ? ' · Peak ' + STATE.peakVel.toFixed(1) + ' m/s' : '');
+  $('summarySource').textContent = STATE.source === 'upload' ? 'VIDEO' : 'LIVE';
+  $('sTime').textContent = fmtTime(dur);
+  $('sCount').textContent = total;
+  $('sRate').textContent = mins > 0.05 ? Math.round(total / mins) : 0;
+
+  let jab = 0, cross = 0, hook = 0, upper = 0;
+  for (const p of STATE.punches) {
+    if (p.type === 'jab') jab++;
+    else if (p.type === 'cross') cross++;
+    else if (p.type === 'hook') hook++;
+    else if (p.type === 'uppercut') upper++;
+  }
+  $('bJab').textContent = jab;
+  $('bCross').textContent = cross;
+  $('bHook').textContent = hook;
+  $('bUpper').textContent = upper;
+
+  drawGraph(dur);
+  drawHeatmap();
+
+  // Auto-save to history (only if at least one detected punch)
+  if (total > 0) {
+    autosaveCurrent(dur);
+  }
+}
+
+function autosaveCurrent(dur) {
+  const id = 'workout-' + Date.now();
+  const entry = {
+    id,
+    date: new Date().toISOString(),
+    duration: dur,
+    source: STATE.source,
+    stance: STATE.stance,
+    facing: STATE.recordingFacingMode,
+    videoW: STATE.videoW,
+    videoH: STATE.videoH,
+    peakVel: STATE.peakVel,
+    punches: STATE.punches.map(p => ({ ...p })),
+    zones: STATE.hitZones.map(z => ({ ...z })),
+  };
+  if (Storage.add(entry)) {
+    showToast('Workout saved');
+    refreshHistoryCount();
+  }
+}
+
+function drawGraph(durationMs) {
+  const cv = $('graphCanvas');
+  const card = cv.parentElement;
+  const cssW = card.clientWidth || 360;
+  const cssH = 160;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.style.width = cssW + 'px';
+  cv.style.height = cssH + 'px';
+  cv.width = Math.round(cssW * dpr);
+  cv.height = Math.round(cssH * dpr);
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+  const W = cssW, H = cssH;
+  const PAD_L = 36, PAD_R = 12, PAD_T = 14, PAD_B = 22;
+
+  ctx.fillStyle = '#141414';
+  ctx.fillRect(0, 0, W, H);
+
+  const durSec = Math.max(1, durationMs / 1000);
+  const BIN_S = Math.max(2, Math.ceil(durSec / 30));
+  const numBins = Math.max(1, Math.ceil(durSec / BIN_S));
+  const bins = new Array(numBins).fill(0);
+  for (const p of STATE.punches) {
+    const bi = Math.min(numBins - 1, Math.floor(p.t / 1000 / BIN_S));
+    if (bi >= 0) bins[bi]++;
+  }
+  const maxV = Math.max(1, ...bins);
+
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD_L, PAD_T);
+  ctx.lineTo(PAD_L, H - PAD_B);
+  ctx.lineTo(W - PAD_R, H - PAD_B);
+  ctx.stroke();
+
+  const innerW = W - PAD_L - PAD_R;
+  const innerH = H - PAD_T - PAD_B;
+  const bw = innerW / numBins;
+  for (let i = 0; i < numBins; i++) {
+    const h = (bins[i] / maxV) * innerH;
+    ctx.fillStyle = bins[i] > 0 ? '#dc2626' : '#1c1c1c';
+    ctx.fillRect(PAD_L + i * bw + 1, H - PAD_B - h, Math.max(1, bw - 2), h);
+  }
+
+  ctx.fillStyle = '#8a8680';
+  ctx.font = '500 10px "JetBrains Mono", monospace';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.fillText(String(maxV), 6, PAD_T + 2);
+  ctx.fillText('0', 6, H - PAD_B);
+  ctx.fillText(`per ${BIN_S}s`, PAD_L + 4, PAD_T - 4);
+  ctx.textAlign = 'right';
+  ctx.fillText(fmtTime(durationMs), W - PAD_R, H - PAD_B + 12);
+  ctx.textAlign = 'left';
+  ctx.fillText('0:00', PAD_L, H - PAD_B + 12);
+}
+
+function drawHeatmap() {
+  const cv = $('heatCanvas');
+  const card = cv.parentElement;
+  const cssW = card.clientWidth || 360;
+  const aspect = STATE.videoH / STATE.videoW;
+  const cssH = Math.max(180, Math.round(cssW * aspect));
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.style.width = cssW + 'px';
+  cv.style.height = cssH + 'px';
+  cv.width = Math.round(cssW * dpr);
+  cv.height = Math.round(cssH * dpr);
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+  const W = cssW, H = cssH;
+
+  const mirrorX = (STATE.source === 'live' && STATE.recordingFacingMode === 'user');
+  const xOf = (nx) => (mirrorX ? (1 - nx) : nx) * W;
+
+  ctx.fillStyle = '#0f0f0f';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = 'rgba(244, 241, 234, 0.04)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 10; i++) {
+    ctx.beginPath();
+    ctx.moveTo(W * i / 10, 0); ctx.lineTo(W * i / 10, H);
+    ctx.moveTo(0, H * i / 10); ctx.lineTo(W, H * i / 10);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(244, 241, 234, 0.1)';
+  ctx.beginPath();
+  ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H);
+  ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2);
+  ctx.stroke();
+
+  // Multi-zone outlines
+  ctx.strokeStyle = 'rgba(251, 191, 36, 0.5)';
+  ctx.setLineDash([6, 6]);
+  ctx.lineWidth = 1.5;
+  for (const z of STATE.hitZones) {
+    ctx.beginPath();
+    ctx.arc(xOf(z.cx), z.cy * H, z.r * Math.min(W, H), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  ctx.globalCompositeOperation = 'screen';
+  for (const p of STATE.punches) {
+    const x = xOf(p.nx), y = p.ny * H;
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, 36);
+    if (p.side === 'left') {
+      grad.addColorStop(0, 'rgba(220, 38, 38, 0.75)');
+      grad.addColorStop(0.4, 'rgba(220, 38, 38, 0.25)');
+      grad.addColorStop(1, 'rgba(220, 38, 38, 0)');
+    } else {
+      grad.addColorStop(0, 'rgba(251, 191, 36, 0.70)');
+      grad.addColorStop(0.4, 'rgba(251, 191, 36, 0.22)');
+      grad.addColorStop(1, 'rgba(251, 191, 36, 0)');
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(x - 40, y - 40, 80, 80);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  for (const p of STATE.punches) {
+    const x = xOf(p.nx), y = p.ny * H;
+    ctx.fillStyle = p.side === 'left' ? '#f4f1ea' : '#0a0a0a';
+    ctx.strokeStyle = p.side === 'left' ? '#dc2626' : '#fbbf24';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
+/* =====================================================
+   CSV EXPORT
+   ===================================================== */
+function exportCSV() {
+  let csv = 'ACTONBOX — Session ' + new Date().toISOString() + '\n';
+  csv += '# Source: ' + STATE.source + '  Stance: ' + STATE.stance +
+         '  PeakVel(m/s): ' + STATE.peakVel.toFixed(2) + '\n';
+  csv += '# Coords in original video frame px. Display mirror does not affect stored data.\n';
+  csv += '\n## Keypoints per frame\n';
+  const head = ['t_ms'];
+  for (const n of KP_NAMES) head.push(`${n}_x`, `${n}_y`, `${n}_s`);
+  csv += head.join(',') + '\n';
+  for (const row of STATE.csv) csv += row.join(',') + '\n';
+
+  csv += '\n## Strikes (classified)\n';
+  csv += 't_ms,side,type,confidence,nx,ny,vel_mps,elbow_angle\n';
+  for (const p of STATE.punches) {
+    csv += [
+      Math.round(p.t), p.side, p.type, p.confidence,
+      p.nx.toFixed(3), p.ny.toFixed(3), p.vel, p.elbowAngle,
+    ].join(',') + '\n';
+  }
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  a.download = `actonbox-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('CSV downloaded');
+}
+
+/* =====================================================
+   REPLAY
+   ===================================================== */
+const replayCv = $('replayCanvas');
+const replayCtx = replayCv.getContext('2d');
+const replayState = { playing: false, idx: 0, lastT: 0, rafId: 0 };
+
+function openReplay() {
+  if (STATE.replay.length < 2) { showToast('Not enough data to replay'); return; }
+  const wrap = replayCv.parentElement;
+  const wrapW = wrap.clientWidth, wrapH = wrap.clientHeight;
+  const aspect = STATE.videoW / STATE.videoH;
+  let cssW = wrapW, cssH = wrapW / aspect;
+  if (cssH > wrapH) { cssH = wrapH; cssW = wrapH * aspect; }
+  replayCv.style.width = cssW + 'px';
+  replayCv.style.height = cssH + 'px';
+  replayCv.style.transform = (STATE.source === 'live' && STATE.recordingFacingMode === 'user')
+    ? 'scaleX(-1)' : '';
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  replayCv.width = Math.round(cssW * dpr);
+  replayCv.height = Math.round(cssH * dpr);
+  replayCtx.setTransform(1, 0, 0, 1, 0, 0);
+  replayCtx.scale(dpr * (cssW / STATE.videoW), dpr * (cssH / STATE.videoH));
+
+  replayState.idx = 0;
+  replayState.playing = true;
+  replayState.lastT = performance.now();
+  $('replayPlayIcon').textContent = '❚❚';
+  setScreen('replay');
+  cancelAnimationFrame(replayState.rafId);
+  drawReplayFrame();
+  replayState.rafId = requestAnimationFrame(replayTick);
+}
+
+function drawReplayFrame() {
+  const i = Math.min(replayState.idx, STATE.replay.length - 1);
+  const frame = STATE.replay[i];
+  if (!frame) return;
+
+  replayCtx.clearRect(0, 0, STATE.videoW, STATE.videoH);
+  replayCtx.fillStyle = '#0a0a0a';
+  replayCtx.fillRect(0, 0, STATE.videoW, STATE.videoH);
+  replayCtx.strokeStyle = 'rgba(244,241,234,0.04)';
+  replayCtx.lineWidth = 1;
+  for (let g = 1; g < 10; g++) {
+    replayCtx.beginPath();
+    replayCtx.moveTo(STATE.videoW * g / 10, 0);
+    replayCtx.lineTo(STATE.videoW * g / 10, STATE.videoH);
+    replayCtx.moveTo(0, STATE.videoH * g / 10);
+    replayCtx.lineTo(STATE.videoW, STATE.videoH * g / 10);
+    replayCtx.stroke();
+  }
+  // Wrist trails
+  const trailStart = Math.max(0, i - 25);
+  for (const side of ['left', 'right']) {
+    const idx = side === 'left' ? KP.L_WRIST : KP.R_WRIST;
+    replayCtx.strokeStyle = side === 'left' ? 'rgba(220,38,38,0.6)' : 'rgba(251,191,36,0.6)';
+    replayCtx.lineWidth = 2;
+    replayCtx.beginPath();
+    let started = false;
+    for (let f = trailStart; f <= i; f++) {
+      const fk = STATE.replay[f].k[idx];
+      if (!fk || fk.s < 0.2) { started = false; continue; }
+      if (!started) { replayCtx.moveTo(fk.x, fk.y); started = true; }
+      else replayCtx.lineTo(fk.x, fk.y);
+    }
+    replayCtx.stroke();
+  }
+  drawReplaySkeleton(frame.k);
+  // Multi-zone outlines on replay
+  if (STATE.hitZones.length > 0) {
+    replayCtx.strokeStyle = 'rgba(251,191,36,0.5)';
+    replayCtx.setLineDash([8, 6]);
+    replayCtx.lineWidth = 2;
+    for (const z of STATE.hitZones) {
+      replayCtx.beginPath();
+      replayCtx.arc(z.cx * STATE.videoW, z.cy * STATE.videoH,
+        z.r * Math.min(STATE.videoW, STATE.videoH), 0, Math.PI * 2);
+      replayCtx.stroke();
+    }
+    replayCtx.setLineDash([]);
+  }
+  const totalT = STATE.replay[STATE.replay.length - 1].t;
+  $('replayScrub').value = totalT > 0 ? (frame.t / totalT) * 100 : 0;
+  $('replayTime').textContent = fmtTime(frame.t) + ' / ' + fmtTime(totalT);
+}
+
+function drawReplaySkeleton(kps) {
+  replayCtx.lineWidth = 3;
+  for (const [a, b] of SKELETON) {
+    const ka = kps[a], kb = kps[b];
+    if (!ka || !kb || ka.s < 0.25 || kb.s < 0.25) continue;
+    const isArm = (a === 5 && b === 7) || (a === 7 && b === 9) ||
+                  (a === 6 && b === 8) || (a === 8 && b === 10);
+    replayCtx.strokeStyle = isArm ? '#dc2626' : '#f4f1ea';
+    replayCtx.beginPath();
+    replayCtx.moveTo(ka.x, ka.y);
+    replayCtx.lineTo(kb.x, kb.y);
+    replayCtx.stroke();
+  }
+  for (let i = 0; i < kps.length; i++) {
+    const k = kps[i];
+    if (!k || k.s < 0.25) continue;
+    const r = (i === KP.L_WRIST || i === KP.R_WRIST) ? 6 : 3;
+    replayCtx.fillStyle = (i === KP.L_WRIST) ? '#dc2626'
+                       : (i === KP.R_WRIST) ? '#fbbf24' : '#f4f1ea';
+    replayCtx.beginPath();
+    replayCtx.arc(k.x, k.y, r, 0, Math.PI * 2);
+    replayCtx.fill();
+  }
+}
+
+function replayTick(t) {
+  if (!replayState.playing) return;
+  const dt = t - replayState.lastT;
+  replayState.lastT = t;
+  if (replayState.idx >= STATE.replay.length - 1) {
+    replayState.idx = STATE.replay.length - 1;
+    replayState.playing = false;
+    $('replayPlayIcon').textContent = '▶';
+    drawReplayFrame();
+    return;
+  }
+  let targetT = STATE.replay[replayState.idx].t + dt;
+  while (replayState.idx < STATE.replay.length - 1 &&
+         STATE.replay[replayState.idx + 1].t <= targetT) {
+    replayState.idx++;
+  }
+  drawReplayFrame();
+  replayState.rafId = requestAnimationFrame(replayTick);
+}
+
+/* =====================================================
+   MULTI-ZONE PICKER
+   Click empty space → adds zone. Click existing zone → removes it.
+   ===================================================== */
+function startZonePick() {
+  STATE.zoneSetting = true;
+  $('zoneHint').style.display = 'block';
+  $('zoneBtn').classList.add('active');
+  $('zoneBtnLabel').textContent = 'Done';
+}
+function endZonePick() {
+  STATE.zoneSetting = false;
+  $('zoneHint').style.display = 'none';
+  $('zoneBtn').classList.remove('active');
+  $('zoneBtnLabel').textContent = 'Zones';
+}
+
+videoFrame.addEventListener('click', (e) => {
+  if (!STATE.zoneSetting) return;
+  const rect = videoFrame.getBoundingClientRect();
+  let nx = (e.clientX - rect.left) / rect.width;
+  const ny = (e.clientY - rect.top) / rect.height;
+  // Un-mirror to data coord space
+  if (STATE.facingMode === 'user' && STATE.source === 'live') nx = 1 - nx;
+
+  // Check if click hits an existing zone — if so, remove it
+  for (let i = 0; i < STATE.hitZones.length; i++) {
+    const z = STATE.hitZones[i];
+    if (Math.hypot(nx - z.cx, ny - z.cy) < z.r) {
+      STATE.hitZones.splice(i, 1);
+      showToast('Zone removed (' + STATE.hitZones.length + ')');
+      return;
+    }
+  }
+  // Else add new zone
+  STATE.hitZones.push({ cx: nx, cy: ny, r: 0.10 });
+  showToast('Zone added (' + STATE.hitZones.length + ')');
+});
+
+/* =====================================================
+   VIDEO UPLOAD ANALYSIS
+   ===================================================== */
+async function analyzeUploadedVideo(file) {
+  $('uploadFilename').textContent = file.name;
+  $('progressFill').style.right = '100%';
+  $('progressPct').textContent = '0%';
+  setScreen('upload');
+
+  await ensureDetector();
+
+  // Build a video element pointed at the file
+  const url = URL.createObjectURL(file);
+  const upVideo = document.createElement('video');
+  upVideo.src = url;
+  upVideo.muted = true;
+  upVideo.playsInline = true;
+  upVideo.preload = 'auto';
+  await new Promise((resolve, reject) => {
+    upVideo.onloadedmetadata = resolve;
+    upVideo.onerror = () => reject(new Error('Could not load video'));
+  });
+
+  STATE.uploadVideo = upVideo;
+  STATE.source = 'upload';
+  STATE.videoW = upVideo.videoWidth || 640;
+  STATE.videoH = upVideo.videoHeight || 480;
+  STATE.startT = 0;  // session time is video time
+  STATE.recordingFacingMode = 'environment'; // don't mirror uploaded video
+  STATE.punches = [];
+  STATE.replay = [];
+  STATE.csv = [];
+  STATE.peakVel = 0;
+  STATE.analyzer = new BoxingAnalyzer(STATE.stance);
+  // Don't apply zones from live session to upload — clear them
+  // (user could add zones during upload but we don't have UI for that yet)
+
+  const totalDur = upVideo.duration * 1000;
+
+  // Process frame-by-frame. We seek using requestVideoFrameCallback if
+  // available; otherwise fall back to playing at 1x.
+  const useVFC = 'requestVideoFrameCallback' in upVideo;
+
+  return new Promise(async (resolve) => {
+    let processed = 0;
+    const startWall = performance.now();
+
+    const onFrame = async (timeMs) => {
+      try {
+        const poses = await STATE.detector.estimatePoses(upVideo, { flipHorizontal: false });
+        if (poses.length > 0 && poses[0].keypoints) {
+          const kps = poses[0].keypoints;
+          const result = STATE.analyzer.analyzeBoxingFrame(kps, timeMs, STATE.videoW, STATE.videoH);
+          if (result.peakVelMps > STATE.peakVel) STATE.peakVel = result.peakVelMps;
+          for (const hit of result.punches) {
+            if (!passesZoneFilter(hit.nx, hit.ny)) continue;
+            STATE.punches.push({ ...hit, t: timeMs });
+          }
+          // Replay buffer
+          if ((STATE.replay.length % CONFIG.REPLAY_SAMPLE_EVERY) === 0) {
+            if (STATE.replay.length >= CONFIG.MAX_REPLAY_FRAMES) STATE.replay.shift();
+            STATE.replay.push({
+              t: timeMs,
+              k: kps.map(k => ({ x: Math.round(k.x), y: Math.round(k.y), s: +((k.score || 0).toFixed(2)) })),
+            });
+          }
+          // CSV buffer
+          if (STATE.csv.length >= CONFIG.MAX_CSV_ROWS) STATE.csv.shift();
+          const row = [Math.round(timeMs)];
+          for (const k of kps) row.push(k.x.toFixed(1), k.y.toFixed(1), (k.score || 0).toFixed(2));
+          STATE.csv.push(row);
+        }
+      } catch (e) {
+        console.error('Frame analysis error:', e);
+      }
+      processed++;
+      const pct = Math.min(100, Math.floor((timeMs / totalDur) * 100));
+      $('progressFill').style.right = (100 - pct) + '%';
+      $('progressPct').textContent = pct + '%';
+    };
+
+    if (useVFC) {
+      // requestVideoFrameCallback path: play the video, get notified per frame
+      upVideo.playbackRate = 1.0;
+      const onVFC = async (now, metadata) => {
+        await onFrame(metadata.mediaTime * 1000);
+        if (upVideo.ended || upVideo.currentTime >= upVideo.duration - 0.05) {
+          finish();
+        } else {
+          upVideo.requestVideoFrameCallback(onVFC);
+        }
+      };
+      upVideo.requestVideoFrameCallback(onVFC);
+      try { await upVideo.play(); } catch (e) { finish(); }
+    } else {
+      // Fallback: seek at 100ms intervals (slower but works everywhere)
+      const STEP_MS = 100;
+      let cur = 0;
+      const seekStep = () => new Promise((res, rej) => {
+        upVideo.onseeked = () => res();
+        upVideo.onerror = () => rej();
+        upVideo.currentTime = cur / 1000;
+      });
+      while (cur < totalDur) {
+        try { await seekStep(); } catch (e) { break; }
+        await onFrame(cur);
+        cur += STEP_MS;
+      }
+      finish();
+    }
+
+    async function finish() {
+      URL.revokeObjectURL(url);
+      STATE.uploadVideo = null;
+      const wallElapsed = performance.now() - startWall;
+      console.log('Upload analysis complete:', processed, 'frames in', wallElapsed.toFixed(0), 'ms');
+      setScreen('summary');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => populateSummary());
+      });
+      resolve();
+    }
+  });
+}
+
+/* =====================================================
+   HISTORY UI
+   ===================================================== */
+function renderHistory() {
+  const body = $('historyBody');
+  const all = Storage.loadAll();
+  if (all.length === 0) {
+    body.innerHTML = '<div class="history-empty">No saved workouts yet.<br><br>Complete a round to save it here.</div>';
+    return;
+  }
+  let html = '';
+  for (const e of all) {
+    const d = new Date(e.date);
+    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const dur = fmtTime(e.duration);
+    const src = (e.source === 'upload' ? 'Video' : 'Live') +
+                ' · ' + (e.stance || 'orthodox') +
+                ' · ' + dur;
+    html += `
+      <div class="history-item" data-id="${e.id}">
+        <div>
+          <div class="date">${dateStr}</div>
+          <div class="time">${timeStr}</div>
+        </div>
+        <div>
+          <div class="count">${e.punches.length}</div>
+          <div class="count-label">strikes</div>
+        </div>
+        <div class="source-tag">${src}</div>
+      </div>`;
+  }
+  body.innerHTML = html;
+  body.querySelectorAll('.history-item').forEach(el => {
+    el.addEventListener('click', () => loadHistoryEntry(el.dataset.id));
+  });
+}
+
+function loadHistoryEntry(id) {
+  const all = Storage.loadAll();
+  const e = all.find(x => x.id === id);
+  if (!e) return;
+  // Hydrate STATE for summary display
+  STATE.source = e.source;
+  STATE.stance = e.stance || 'orthodox';
+  STATE.recordingFacingMode = e.facing || 'environment';
+  STATE.videoW = e.videoW || 640;
+  STATE.videoH = e.videoH || 480;
+  STATE.peakVel = e.peakVel || 0;
+  STATE.punches = e.punches.slice();
+  STATE.hitZones = (e.zones || []).slice();
+  STATE.startT = performance.now() - e.duration; // so computeDurationMs works
+
+  setScreen('summary');
+  requestAnimationFrame(() => requestAnimationFrame(() => populateSummary()));
+}
+
+function refreshHistoryCount() {
+  const n = Storage.loadAll().length;
+  $('historyCountSub').textContent = n + ' Saved';
+}
+
+/* =====================================================
+   EVENT WIRING
+   ===================================================== */
+async function startLive() {
+  $('startLiveBtn').disabled = true;
+  $('startLiveBtn').textContent = 'Loading…';
+  try {
+    await ensureDetector();
+    loader.textContent = 'Requesting camera…';
+    await setupCamera(STATE.facingMode);
+    loader.textContent = '';
+    STATE.source = 'live';
+    setScreen('live');
+    $('readyBanner').style.display = 'block';
+    STATE.running = true;
+    STATE.fpsT = performance.now();
+    STATE.loopId = requestAnimationFrame(loop);
+  } catch (e) {
+    console.error(e);
+    loader.textContent = 'Error: ' + (e.message || 'failed to start');
+    $('startLiveBtn').disabled = false;
+    $('startLiveBtn').innerHTML = 'Live Round<span class="sub">Retry</span>';
+  }
+}
+
+$('startLiveBtn').addEventListener('click', startLive);
+$('startUploadBtn').addEventListener('click', () => $('fileInput').click());
+$('fileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = ''; // allow re-selecting same file later
+  try {
+    await analyzeUploadedVideo(file);
+  } catch (err) {
+    console.error(err);
+    showToast('Analysis failed: ' + err.message);
+    setScreen('splash');
+  }
+});
+$('historyBtn').addEventListener('click', () => { renderHistory(); setScreen('history'); });
+$('historyBackBtn').addEventListener('click', () => setScreen('splash'));
+$('aboutBtn').addEventListener('click', () => $('aboutModal').classList.add('active'));
+$('aboutCloseBtn').addEventListener('click', () => $('aboutModal').classList.remove('active'));
+$('stanceToggleOrtho').addEventListener('click', () => {
+  STATE.stance = 'orthodox';
+  Storage.saveStance('orthodox');
+  $('stanceToggleOrtho').classList.add('active');
+  $('stanceToggleSouth').classList.remove('active');
+  if (STATE.analyzer) STATE.analyzer.setStance('orthodox');
+});
+$('stanceToggleSouth').addEventListener('click', () => {
+  STATE.stance = 'southpaw';
+  Storage.saveStance('southpaw');
+  $('stanceToggleSouth').classList.add('active');
+  $('stanceToggleOrtho').classList.remove('active');
+  if (STATE.analyzer) STATE.analyzer.setStance('southpaw');
+});
+$('clearAllBtn').addEventListener('click', () => {
+  if (confirm('Delete ALL saved workouts? This cannot be undone.')) {
+    Storage.clear();
+    refreshHistoryCount();
+    showToast('All workouts cleared');
+  }
+});
+$('recBtn').addEventListener('click', () => {
+  if (!STATE.running) return;
+  if (STATE.recording) stopRecording(true);
+  else startRecording();
+});
+$('zoneBtn').addEventListener('click', () => {
+  if (STATE.zoneSetting) endZonePick();
+  else startZonePick();
+});
+$('stanceBtn').addEventListener('click', () => {
+  STATE.stance = STATE.stance === 'orthodox' ? 'southpaw' : 'orthodox';
+  Storage.saveStance(STATE.stance);
+  if (STATE.analyzer) STATE.analyzer.setStance(STATE.stance);
+  // Update toggle in About too
+  $('stanceToggleOrtho').classList.toggle('active', STATE.stance === 'orthodox');
+  $('stanceToggleSouth').classList.toggle('active', STATE.stance === 'southpaw');
+  showToast('Stance: ' + STATE.stance);
+});
+$('flipBtn').addEventListener('click', async () => {
+  if (STATE.recording) { showToast('Stop the round first'); return; }
+  STATE.facingMode = STATE.facingMode === 'user' ? 'environment' : 'user';
+  try {
+    await setupCamera(STATE.facingMode);
+    showToast(STATE.facingMode === 'user' ? 'Front camera' : 'Rear camera');
+  } catch (e) {
+    showToast('Camera flip failed');
+    STATE.facingMode = STATE.facingMode === 'user' ? 'environment' : 'user';
+    await setupCamera(STATE.facingMode);
+  }
+});
+$('endBtn').addEventListener('click', () => {
+  if (STATE.recording) stopRecording(true);
+  else {
+    cancelAnimationFrame(STATE.loopId);
+    STATE.running = false;
+    if (STATE.stream) { STATE.stream.getTracks().forEach(t => t.stop()); STATE.stream = null; }
+    setScreen('splash');
+    refreshHistoryCount();
+  }
+});
+$('csvBtn').addEventListener('click', exportCSV);
+$('replayBtn').addEventListener('click', openReplay);
+$('discardBtn').addEventListener('click', () => {
+  if (!confirm('Discard this workout? It will be removed from history.')) return;
+  // Find most recent matching entry (the autosaved one) and delete it
+  const all = Storage.loadAll();
+  if (all.length > 0) {
+    Storage.delete(all[0].id);
+    refreshHistoryCount();
+  }
+  setScreen('splash');
+});
+$('newBtn').addEventListener('click', async () => {
+  // Done — back to splash
+  STATE.punches = [];
+  STATE.replay = [];
+  STATE.csv = [];
+  refreshHistoryCount();
+  setScreen('splash');
+});
+$('replayBackBtn').addEventListener('click', () => {
+  replayState.playing = false;
+  cancelAnimationFrame(replayState.rafId);
+  setScreen('summary');
+});
+$('replayPlay').addEventListener('click', () => {
+  if (replayState.idx >= STATE.replay.length - 1) replayState.idx = 0;
+  replayState.playing = !replayState.playing;
+  $('replayPlayIcon').textContent = replayState.playing ? '❚❚' : '▶';
+  if (replayState.playing) {
+    replayState.lastT = performance.now();
+    replayState.rafId = requestAnimationFrame(replayTick);
+  }
+});
+$('replayScrub').addEventListener('input', (e) => {
+  if (STATE.replay.length === 0) return;
+  const totalT = STATE.replay[STATE.replay.length - 1].t;
+  const targetT = (parseFloat(e.target.value) / 100) * totalT;
+  let i = 0;
+  while (i < STATE.replay.length - 1 && STATE.replay[i + 1].t <= targetT) i++;
+  replayState.idx = i;
+  drawReplayFrame();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && STATE.running) {
+    cancelAnimationFrame(STATE.loopId);
+  } else if (!document.hidden && STATE.running) {
+    STATE.fpsT = performance.now();
+    STATE.fpsCount = 0;
+    STATE.loopId = requestAnimationFrame(loop);
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (STATE.running) sizeOverlay();
+});
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+
+// Init
+(function init() {
+  STATE.stance = Storage.loadStance();
+  if (STATE.stance === 'southpaw') {
+    $('stanceToggleSouth').classList.add('active');
+    $('stanceToggleOrtho').classList.remove('active');
+  }
+  refreshHistoryCount();
+})();
+</script>
+</body>
+</html>
